@@ -99,24 +99,7 @@ const pacientMenuSections: MenuSection[] = [
       {
         icon: FileText,
         label: "Documentele mele",
-        subItems: [
-          {
-            label: "Trimiteri",
-            href: "#",
-          },
-          {
-            label: "Rețete",
-            href: "#",
-          },
-          {
-            label: "Adeverințe",
-            href: "#",
-          },
-          {
-            label: "Analize și Rezultate",
-            href: "#",
-          },
-        ],
+        href: "#",
       },
       {
         icon: Stethoscope,
@@ -128,24 +111,6 @@ const pacientMenuSections: MenuSection[] = [
   {
     label: "Familia mea",
     items: [
-      {
-        icon: Baby,
-        label: "Maria Georgescu",
-        subItems: [
-          {
-            label: "Calendarul Copilului (Vaccinuri & Creștere)",
-            href: "#",
-          },
-          {
-            label: "Istoric Medical Copil",
-            href: "#",
-          },
-          {
-            label: "Documente Copil",
-            href: "#",
-          },
-        ],
-      },
       {
         icon: Baby,
         label: "Înscrie un nou născut",
@@ -196,18 +161,18 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: AlertTriangle,
-        label: "Alerte AI (Pacienți Risc Înalt)",
+        label: "Alerte AI (pacienți risc înalt)",
         href: "#",
       },
       {
         icon: UserPlus,
-        label: "Cereri de inscriere Noi",
+        label: "Cereri de inscriere noi",
         href: "#",
         badge: "3",
       },
       {
         icon: FileText,
-        label: "Cereri Documente/Rețete",
+        label: "Cereri documente/rețete",
         href: "#",
         badge: "5",
       },
@@ -224,7 +189,7 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: FileEdit,
-        label: "Emite Document",
+        label: "Emite document",
         href: "#",
       },
       {
@@ -244,7 +209,7 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: Settings,
-        label: "Setări Program",
+        label: "Setări program",
         href: "#",
       },
     ],
@@ -259,7 +224,7 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: TrendingUp,
-        label: "Rapoarte Financiare",
+        label: "Rapoarte financiare",
         href: "#",
       },
       {

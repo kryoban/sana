@@ -133,12 +133,14 @@ type ConversationHistoryItem = {
   content: string;
   badgeText: string;
   badgeColor: "gray" | "yellow" | "red";
+  status?: string; // Optional status for database requests
 };
 
-const conversationHistory: ConversationHistoryItem[] = [
+// Static conversation history (fallback/example items)
+const staticConversationHistory: ConversationHistoryItem[] = [
   {
     id: "1",
-    date: new Date(2024, 0, 15), // January 15, 2024
+    date: new Date(2025, 7, 15), // August 15, 2025
     content:
       "Salut Andrei, am revenit pentru programarea unui set de analize anuale...",
     badgeText: "Programare",
@@ -146,14 +148,14 @@ const conversationHistory: ConversationHistoryItem[] = [
   },
   {
     id: "2",
-    date: new Date(2024, 0, 12), // January 12, 2024
+    date: new Date(2024, 11, 12), // December 12, 2024
     content: "Am nevoie de adeverință de asigurat de la CNAS...",
     badgeText: "Adeverință asigurat",
     badgeColor: "yellow",
   },
   {
     id: "3",
-    date: new Date(2024, 0, 10), // January 10, 2024
+    date: new Date(2024, 5, 10), // June 10, 2024
     content:
       "In ultima perioada m-a durut zona lombara foarte rau, fara a depun vreun efort semnificativ...",
     badgeText: "Trimitere RMN",
@@ -161,19 +163,11 @@ const conversationHistory: ConversationHistoryItem[] = [
   },
   {
     id: "4",
-    date: new Date(2024, 0, 8), // January 8, 2024
+    date: new Date(2023, 11, 8), // December 8, 2023
     content:
       "🎉 Buna Andrei, am programat prima vizita la noul medic de familie, dr. Dana Popescu.",
     badgeText: "Programare",
     badgeColor: "gray",
-  },
-  {
-    id: "5",
-    date: new Date(2024, 0, 5), // January 5, 2024
-    content:
-      "Doresc să schimb doctorul de familie deoarece mi-am schimbat domiciliul...",
-    badgeText: "Schimbare doctor",
-    badgeColor: "red",
   },
 ];
 
@@ -220,6 +214,41 @@ const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
         borderRadius: "6px",
       };
   }
+};
+
+// Get status badge styles matching the type badge dimensions (keep outline variant with border)
+const getStatusBadgeStyles = () => {
+  return {
+    fontWeight: 600,
+    paddingTop: "4px",
+    paddingBottom: "4px",
+    paddingLeft: "8px",
+    paddingRight: "8px",
+    borderRadius: "6px",
+  };
+};
+
+// Get status badge component (matching type badge dimensions, keeping outline variant with border)
+const getStatusBadge = (status: string) => {
+  const statusLabels: Record<string, string> = {
+    pending: "În așteptare",
+    approved: "Aprobată",
+    rejected: "Respinsă",
+  };
+
+  const badgeStyles = {
+    ...getStatusBadgeStyles(),
+    // Override rounded-full from Badge base classes
+    borderRadius: "6px !important" as any,
+    // Ensure padding overrides default Badge padding
+    padding: "4px 8px",
+  };
+
+  return (
+    <Badge variant="outline" className="whitespace-nowrap" style={badgeStyles}>
+      {statusLabels[status] || status}
+    </Badge>
+  );
 };
 
 // Component to handle auto-scroll when user sends messages
@@ -269,11 +298,56 @@ export default function ClientPage() {
     userData: any;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<
+    ConversationHistoryItem[]
+  >(staticConversationHistory);
 
   // Initialize after hydration to avoid SSR mismatch
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Function to fetch requests and update conversation history
+  const refreshConversationHistory = useCallback(async () => {
+    try {
+      // Use the patient CNP from the userData
+      const patientCnp = "1901213254491"; // This matches the CNP used in the signature dialog
+      const response = await fetch(`/api/requests?cnp=${patientCnp}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch requests");
+      }
+      const data = await response.json();
+      const requests = data.requests || [];
+
+      // Convert requests to ConversationHistoryItem format
+      const requestHistoryItems: ConversationHistoryItem[] = requests.map(
+        (request: any) => ({
+          id: `request-${request.id}`,
+          date: new Date(request.createdAt),
+          content: "Cerere de schimbare medic trimisă",
+          badgeText: "Schimbare doctor",
+          badgeColor: "red" as const,
+          status: request.status, // Include status for database requests
+        })
+      );
+
+      // Combine request items with static history, then sort by date (newest first)
+      const allItems = [...requestHistoryItems, ...staticConversationHistory];
+      allItems.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      setConversationHistory(allItems);
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+      // On error, just use static history
+      setConversationHistory(staticConversationHistory);
+    }
+  }, []);
+
+  // Fetch requests from database and add them to conversation history
+  React.useEffect(() => {
+    if (!mounted) return;
+    refreshConversationHistory();
+  }, [mounted, refreshConversationHistory]);
 
   // Handle PDF download
   const handleDownloadPDF = useCallback((pdfData: string) => {
@@ -838,13 +912,16 @@ export default function ClientPage() {
                           <span className="flex-1 text-sm text-foreground">
                             {item.content}
                           </span>
-                          <Badge
-                            variant="outline"
-                            className="whitespace-nowrap border-0"
-                            style={badgeStyles}
-                          >
-                            {item.badgeText}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {item.status && getStatusBadge(item.status)}
+                            <Badge
+                              variant="outline"
+                              className="whitespace-nowrap border-0"
+                              style={badgeStyles}
+                            >
+                              {item.badgeText}
+                            </Badge>
+                          </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -1266,6 +1343,9 @@ export default function ClientPage() {
                                       throw new Error("Failed to save request");
                                     }
 
+                                    // Refresh conversation history to show the new request
+                                    refreshConversationHistory();
+
                                     // Show success message
                                     const successMessageId = nanoid();
                                     const successMessage: ChatMessage = {
@@ -1386,7 +1466,7 @@ export default function ClientPage() {
           const userData = {
             name: "GEORGESCU ANDREI",
             cnp: "1901213254491",
-            birthDate: "19.01.1993", // Extracted from CNP (first 6 digits: 190119)
+            birthDate: "13.12.1990",
             citizenship: "romana",
             address: {
               street: street || "Dezrobirii",
