@@ -1,7 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { BookUser, FileSpreadsheet, Search, Sparkles, User } from "lucide-react";
+import {
+  BookUser,
+  Calendar,
+  ChartColumn,
+  FileSpreadsheet,
+  LayoutDashboard,
+  Pill,
+  Search,
+  Sparkles,
+  User,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,8 +26,100 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import type { LucideIcon } from "lucide-react";
 
-export function AppSidebar() {
+type MenuItem = {
+  icon: LucideIcon;
+  label: string;
+  href?: string;
+};
+
+type MenuSection = {
+  label: string;
+  items: MenuItem[];
+};
+
+type SidebarVariant = "pacient" | "medic";
+
+const pacientMenuSections: MenuSection[] = [
+  {
+    label: "Activitate",
+    items: [
+      {
+        icon: BookUser,
+        label: "Fișa mea",
+        href: "#",
+      },
+      {
+        icon: FileSpreadsheet,
+        label: "Documente eliberate",
+        href: "#",
+      },
+      {
+        icon: Sparkles,
+        label: "Discută cu Ana",
+        href: "#",
+      },
+    ],
+  },
+];
+
+const medicMenuSections: MenuSection[] = [
+  {
+    label: "Activitate",
+    items: [
+      {
+        icon: LayoutDashboard,
+        label: "Dashboard",
+        href: "#",
+      },
+      {
+        icon: FileSpreadsheet,
+        label: "Eliberare documente",
+        href: "#",
+      },
+      {
+        icon: Sparkles,
+        label: "Discută cu Ana",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Pacienti",
+    items: [
+      {
+        icon: BookUser,
+        label: "Fisa pacient",
+        href: "#",
+      },
+      {
+        icon: Calendar,
+        label: "Programari",
+        href: "#",
+      },
+      {
+        icon: ChartColumn,
+        label: "Rapoarte medicale",
+        href: "#",
+      },
+      {
+        icon: Pill,
+        label: "Vaccinuri",
+        href: "#",
+      },
+    ],
+  },
+];
+
+interface AppSidebarProps {
+  variant?: SidebarVariant;
+}
+
+export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
+  const menuSections =
+    variant === "medic" ? medicMenuSections : pacientMenuSections;
+
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
@@ -53,37 +155,28 @@ export function AppSidebar() {
         </div>
       </div>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Activitate</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="#">
-                    <BookUser />
-                    <span>Fișa mea</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="#">
-                    <FileSpreadsheet />
-                    <span>Documente eliberate</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="#">
-                    <Sparkles />
-                    <span>Discută cu Ana</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuSections.map((section, sectionIndex) => (
+          <SidebarGroup key={sectionIndex}>
+            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item, itemIndex) => {
+                  const Icon = item.icon;
+                  return (
+                    <SidebarMenuItem key={itemIndex}>
+                      <SidebarMenuButton asChild>
+                        <a href={item.href || "#"}>
+                          <Icon />
+                          <span>{item.label}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 w-full">
