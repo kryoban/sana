@@ -1739,6 +1739,9 @@ export default function ClientPage() {
               onSubmit={handleSubmit}
               value={inputValue}
               onValueChange={setInputValue}
+              placeholder={
+                showHistory ? "Bună, Andrei! Cu ce te pot ajuta?" : undefined
+              }
             />
           </div>
         </div>

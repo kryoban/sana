@@ -45,6 +45,7 @@ export default function MedicPage() {
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [pendingRequests, setPendingRequests] = useState<Request[]>([]);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
+  const [latestRequest, setLatestRequest] = useState<Request | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -79,8 +80,10 @@ export default function MedicPage() {
       const response = await fetch("/api/requests");
       if (response.ok) {
         const data = await response.json();
+        const allRequestsData = data.requests || [];
+
         // Filter to only approved and rejected, sort by creation date (newest first)
-        const processedRequests = (data.requests || [])
+        const processedRequests = allRequestsData
           .filter(
             (req: Request) =>
               req.status === "approved" || req.status === "rejected"
@@ -91,6 +94,19 @@ export default function MedicPage() {
             );
           });
         setAllRequests(processedRequests);
+
+        // Store the latest request from all requests (for sidebar display)
+        if (allRequestsData.length > 0) {
+          const sortedAllRequests = [...allRequestsData].sort(
+            (a: Request, b: Request) => {
+              return (
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+              );
+            }
+          );
+          setLatestRequest(sortedAllRequests[0]);
+        }
       }
     } catch (error) {
       console.error("Error fetching all requests:", error);
@@ -201,13 +217,21 @@ export default function MedicPage() {
     return age;
   };
 
+  // Determine which doctor name to show in sidebar
+  // If there are pending requests, show the first pending request's doctor
+  // Otherwise, show the latest medic from all requests (including pending, approved, rejected)
+  const sidebarDoctorName =
+    pendingRequests.length > 0
+      ? pendingRequests[0]?.doctorName
+      : latestRequest?.doctorName;
+
   return (
     <SidebarProvider>
       <AppSidebar
         variant="medic"
         activeMenuItem="Cereri noi"
         pendingRequestsCount={pendingCount}
-        doctorName={pendingRequests[0]?.doctorName}
+        doctorName={sidebarDoctorName}
       />
       <SidebarInset>
         <div className="flex h-screen w-full flex-col bg-background">
@@ -398,6 +422,13 @@ export default function MedicPage() {
 
                   {allRequests.length > 0 ? (
                     <div className="space-y-4">
+                      {pendingRequests.length === 0 && (
+                        <div className="mb-4">
+                          <p className="text-base text-muted-foreground">
+                            Momentan nu există cereri noi
+                          </p>
+                        </div>
+                      )}
                       <div className="mb-4">
                         <h2 className="text-lg font-semibold text-foreground">
                           Cereri procesate

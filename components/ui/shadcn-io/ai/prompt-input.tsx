@@ -19,11 +19,13 @@ export function PromptInput({
   onSubmit,
   value: controlledValue,
   onValueChange,
+  placeholder,
   ...props
 }: {
   onSubmit?: (value: string) => void;
   value?: string;
   onValueChange?: (value: string) => void;
+  placeholder?: string;
 } & Omit<React.HTMLAttributes<HTMLFormElement>, "onSubmit">) {
   const [internalValue, setInternalValue] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -80,6 +82,7 @@ export function PromptInput({
                 }
               }}
               className="pr-12"
+              placeholder={placeholder}
             />
             <div className="absolute bottom-2 left-2 flex items-center gap-2">
               <PromptInputTools />
@@ -98,7 +101,7 @@ export function PromptInput({
 export const PromptInputTextarea = React.forwardRef<
   HTMLTextAreaElement,
   React.ComponentProps<typeof Textarea>
->(({ className, ...props }, ref) => {
+>(({ className, placeholder, ...props }, ref) => {
   return (
     <Textarea
       ref={ref}
@@ -106,7 +109,7 @@ export const PromptInputTextarea = React.forwardRef<
         "min-h-[100px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed focus-visible:border-[#FF008C] focus-visible:ring-[#FF008C]/50 focus-visible:shadow-xl",
         className
       )}
-      placeholder="Bună, Andrei! Cu ce te pot ajuta?"
+      placeholder={placeholder}
       {...props}
     />
   );
