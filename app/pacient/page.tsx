@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVerticalIcon } from "lucide-react";
+import { MoreVerticalIcon, Sparkle, Sparkles } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -206,7 +206,7 @@ const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
       };
     case "red":
       return {
-        backgroundColor: "#DC2626",
+        backgroundColor: "#250065",
         color: "#FFFFFF",
         fontWeight: 600,
         paddingTop: "4px",
@@ -919,18 +919,23 @@ export default function ClientPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar variant="pacient" activeMenuItem="Discuta cu Ana" />
       <SidebarInset>
         <div className="flex h-screen w-full flex-col bg-background">
+          {/* Header */}
+          <header className="border-b border-border bg-card">
+            <div className="flex h-16 items-center px-6">
+              <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+                <Sparkles className="size-6 text-[#FF008C]" /> Discută cu Ana
+              </h1>
+            </div>
+          </header>
           {/* Conversation Area */}
           <Conversation className="flex-1">
             <AutoScrollHandler messages={messages} />
             <ConversationContent>
               {showHistory ? (
                 <div className="flex flex-col gap-6">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Discutii anterioare
-                  </h2>
                   <div className="flex flex-col overflow-hidden rounded-lg border border-border">
                     {conversationHistory.map((item, index) => {
                       const isFirst = index === 0;
@@ -1231,21 +1236,13 @@ export default function ClientPage() {
                             )}
                           {message.mapAddress && !message.isStreaming && (
                             <div
-                              className={`mt-4 ${
-                                message.doctorSelected ? "" : "px-8"
-                              }`}
+                              className={`mt-4`}
                               style={
                                 message.doctorSelected
                                   ? {}
                                   : {
                                       position: "relative",
-                                      left: "50%",
-                                      right: "50%",
-                                      marginLeft: "calc(-50vw + 50%)",
-                                      marginRight: "calc(-50vw + 50%)",
-                                      width: "100vw",
-                                      maxWidth:
-                                        "calc(100vw - var(--sidebar-width, 16rem))",
+                                      width: "100%",
                                     }
                               }
                             >
@@ -1460,7 +1457,7 @@ export default function ClientPage() {
           </Conversation>
 
           {/* Input Area */}
-          <div className="border-t border-border bg-card">
+          <div className="border-border bg-card">
             <PromptInput
               onSubmit={handleSubmit}
               value={inputValue}

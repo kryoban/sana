@@ -24,6 +24,7 @@ import {
   List,
   ChevronRight,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -72,6 +73,11 @@ const pacientMenuSections: MenuSection[] = [
     label: "Acțiuni rapide",
     items: [
       {
+        icon: Sparkles,
+        label: "Discută cu Ana",
+        href: "/pacient",
+      },
+      {
         icon: CalendarPlus,
         label: "Programare nouă",
         href: "#",
@@ -81,15 +87,10 @@ const pacientMenuSections: MenuSection[] = [
         label: "Solicită document",
         href: "#",
       },
-      {
-        icon: UserPlus,
-        label: "Înscriere/schimbare medic",
-        href: "#",
-      },
     ],
   },
   {
-    label: "Sănătatea Mea",
+    label: "Sănătatea mea",
     items: [
       {
         icon: History,
@@ -106,6 +107,11 @@ const pacientMenuSections: MenuSection[] = [
         label: "Medicul meu",
         href: "#",
       },
+      {
+        icon: List,
+        label: "Programările mele",
+        href: "#",
+      },
     ],
   },
   {
@@ -118,22 +124,7 @@ const pacientMenuSections: MenuSection[] = [
       },
       {
         icon: UserPlus,
-        label: "Adaugă un membru de familie",
-        href: "#",
-      },
-    ],
-  },
-  {
-    label: "Programări",
-    items: [
-      {
-        icon: CalendarPlus,
-        label: "Programează o consultație",
-        href: "#",
-      },
-      {
-        icon: List,
-        label: "Lista programărilor mele",
+        label: "Adaugă membru de familie",
         href: "#",
       },
     ],

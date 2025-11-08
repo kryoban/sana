@@ -27,7 +27,7 @@ export function Message({
       )}
       <div
         className={cn(
-          "flex max-w-[80%] flex-col gap-2",
+          "flex w-full flex-col gap-2",
           from === "user" ? "items-end" : "items-start"
         )}
       >

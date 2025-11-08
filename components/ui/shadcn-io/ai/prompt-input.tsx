@@ -52,43 +52,45 @@ export function PromptInput({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "auto";
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${Math.max(
+        100,
+        Math.min(textarea.scrollHeight, 200)
+      )}px`;
     }
   }, [value]);
 
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn(
-        "flex flex-col gap-3 border-t border-border bg-background p-4",
-        className
-      )}
+      className={cn("flex flex-col gap-3 bg-background p-4", className)}
       {...props}
     >
       {children}
-      <div className="relative flex items-end gap-2">
-        <div className="relative flex-1">
-          <PromptInputTextarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e as any);
-              }
-            }}
-            className="pr-12"
-          />
-          <PromptInputSubmit
-            disabled={!value.trim()}
-            className="absolute bottom-2 right-2"
-          />
+      <div className="flex justify-center">
+        <div className="relative flex items-end gap-2 w-full max-w-[768px]">
+          <div className="relative flex-1">
+            <PromptInputTextarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
+              className="pr-12"
+            />
+            <div className="absolute bottom-2 left-2 flex items-center gap-2">
+              <PromptInputTools />
+            </div>
+            <PromptInputSubmit
+              disabled={!value.trim()}
+              className="absolute bottom-2 right-2"
+            />
+          </div>
         </div>
       </div>
-      <PromptInputToolbar>
-        <PromptInputTools />
-      </PromptInputToolbar>
     </form>
   );
 }
@@ -101,7 +103,7 @@ export const PromptInputTextarea = React.forwardRef<
     <Textarea
       ref={ref}
       className={cn(
-        "min-h-[52px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed focus-visible:border-[#FF008C] focus-visible:ring-[#FF008C]/50",
+        "min-h-[100px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed focus-visible:border-[#FF008C] focus-visible:ring-[#FF008C]/50 focus-visible:shadow-xl",
         className
       )}
       placeholder="Bună, Andrei! Cu ce te pot ajuta?"

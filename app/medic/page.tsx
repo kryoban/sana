@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { DateRange } from "react-day-picker";
-import { subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,15 +40,6 @@ type Request = {
 };
 
 export default function MedicPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const today = new Date();
-    const thirtyDaysAgo = subDays(today, 30);
-    return {
-      from: thirtyDaysAgo,
-      to: today,
-    };
-  });
-
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [latestRequest, setLatestRequest] = useState<Request | null>(null);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
@@ -192,16 +180,8 @@ export default function MedicPage() {
         <div className="flex h-screen w-full flex-col bg-background">
           {/* Header */}
           <header className="border-b border-border bg-card">
-            <div className="flex h-16 items-center justify-between px-6">
-              <h1 className="text-2xl font-bold text-foreground">
-                Cereri de inscriere noi
-              </h1>
-              <div className="flex items-center gap-4">
-                <DateRangePicker
-                  dateRange={dateRange}
-                  onDateRangeChange={setDateRange}
-                />
-              </div>
+            <div className="flex h-16 items-center px-6">
+              <h1 className="text-2xl font-bold text-foreground">Cereri noi</h1>
             </div>
           </header>
           {/* Main Content */}
@@ -217,12 +197,14 @@ export default function MedicPage() {
                     <Card className="bg-sidebar">
                       <CardHeader>
                         <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-xl mb-2">
                               Cerere de înscriere #{latestRequest.id}
                             </CardTitle>
-                            <CardDescription>
-                              Creată la {formatDate(latestRequest.createdAt)}
+                            <CardDescription className="-mt-1">
+                              {"("}
+                              {formatDate(latestRequest.createdAt)}
+                              {")"}
                             </CardDescription>
                           </div>
                           <Badge
@@ -246,46 +228,21 @@ export default function MedicPage() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
-                          <h3 className="font-semibold mb-2">
-                            Detalii pacient
-                          </h3>
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">
-                                Nume:
-                              </span>
+                              <span style={{ color: "#734DB4" }}>Nume</span>
                               <p className="font-medium">
                                 {latestRequest.patientName}
                               </p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">
-                                CNP:
-                              </span>
+                              <span style={{ color: "#734DB4" }}>CNP</span>
                               <p className="font-medium">
                                 {latestRequest.patientCnp}
                               </p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">
-                                Data nașterii:
-                              </span>
-                              <p className="font-medium">
-                                {latestRequest.patientBirthDate}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">
-                                Cetățenie:
-                              </span>
-                              <p className="font-medium">
-                                {latestRequest.patientCitizenship}
-                              </p>
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground">
-                                Adresă:
-                              </span>
+                              <span style={{ color: "#734DB4" }}>Adresă</span>
                               <p className="font-medium">
                                 {latestRequest.patientAddressStreet}
                                 {latestRequest.patientAddressNumber &&
@@ -299,10 +256,19 @@ export default function MedicPage() {
                                 {`, ${latestRequest.patientAddressSector}`}
                               </p>
                             </div>
+
+                            <div>
+                              <span style={{ color: "#734DB4" }}>
+                                Data nașterii
+                              </span>
+                              <p className="font-medium">
+                                {latestRequest.patientBirthDate}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
+                      <CardFooter className="flex justify-between border-t border-border">
                         <Button
                           variant="outline"
                           onClick={() => handleDownloadPDF(latestRequest.id)}
