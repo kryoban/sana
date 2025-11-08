@@ -46,6 +46,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
+import { FaCcMastercard } from "react-icons/fa";
 
 type SubMenuItem = {
   label: string;
@@ -152,7 +153,7 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: AlertTriangle,
-        label: "Alerte AI (pacienți risc înalt)",
+        label: "Alerte AI",
         href: "#",
       },
       {
@@ -364,8 +365,22 @@ export function AppSidebar({
                             )}
                           </div>
                         ) : (
-                          <a href={item.href || "#"}>
-                            {Icon && <Icon style={{ color: "#FF008C" }} />}
+                          <a
+                            href={item.href || "#"}
+                            className="flex items-center gap-2"
+                          >
+                            {Icon && item.label !== "Taxe" && (
+                              <Icon style={{ color: "#FF008C" }} />
+                            )}
+                            {item.label === "Taxe" && (
+                              <Image
+                                src="/images/mastercard_logo.svg"
+                                alt="Mastercard"
+                                width={16}
+                                height={16}
+                                className="size-4 shrink-0"
+                              />
+                            )}
                             <span className="flex-1 truncate">
                               {item.label}
                             </span>
