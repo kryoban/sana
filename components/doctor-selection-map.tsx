@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   MapPinIcon,
   SearchIcon,
@@ -426,18 +426,26 @@ function calculateDistance(
   return R * c;
 }
 
-// Generate random position within 5km radius, with minimum distance
+// Seeded random number generator (produces deterministic "random" numbers)
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+// Generate deterministic position within 5km radius, with minimum distance
+// Uses seeded random based on location and index to ensure consistent positions
 function generateRandomPosition(
   centerLat: number,
   centerLon: number,
+  seed: number,
   maxDistanceKm: number = 5,
   minDistanceKm: number = 0.5
 ): [number, number] {
-  // Generate random angle and distance (ensuring minimum distance)
-  const angle = Math.random() * 2 * Math.PI;
+  // Use seeded random for deterministic positioning
+  const angle = seededRandom(seed) * 2 * Math.PI;
   // Ensure distance is between minDistanceKm and maxDistanceKm
   const distance =
-    minDistanceKm + Math.random() * (maxDistanceKm - minDistanceKm);
+    minDistanceKm + seededRandom(seed + 1) * (maxDistanceKm - minDistanceKm);
 
   const latOffset = (distance * Math.cos(angle)) / 111;
   const lonOffset =
@@ -553,7 +561,6 @@ export function DoctorSelectionMap({
     coordinates: LatLngExpression;
     displayName: string;
   } | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const markerRefs = useRef<{ [key: string]: any }>({});
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<
@@ -569,50 +576,75 @@ export function DoctorSelectionMap({
   const shouldShowSuggestionsRef = useRef(true);
   const suggestionsListRef = useRef<HTMLDivElement>(null);
 
-  // Generate doctors when location is selected
-  useEffect(() => {
-    if (selectedLocation) {
-      const [lat, lon] = Array.isArray(selectedLocation.coordinates)
-        ? selectedLocation.coordinates
-        : [selectedLocation.coordinates.lat, selectedLocation.coordinates.lng];
+  // Generate doctors when location is selected (deterministically based on location)
+  const doctors = useMemo(() => {
+    if (!selectedLocation) {
+      return [];
+    }
 
-      // Generate 10 random doctors within 5km
-      const generatedDoctors: Doctor[] = [];
-      const usedIndices = new Set<number>();
+    const [lat, lon] = Array.isArray(selectedLocation.coordinates)
+      ? selectedLocation.coordinates
+      : [selectedLocation.coordinates.lat, selectedLocation.coordinates.lng];
 
-      while (
-        generatedDoctors.length < 10 &&
-        usedIndices.size < MOCK_DOCTORS.length
-      ) {
-        let randomIndex;
-        do {
-          randomIndex = Math.floor(Math.random() * MOCK_DOCTORS.length);
-        } while (usedIndices.has(randomIndex));
+    // Create a seed based on location coordinates for deterministic generation
+    // Round coordinates to 4 decimal places (~11 meters precision) to ensure
+    // same locations produce same doctors
+    const roundedLat = Math.round(lat * 10000) / 10000;
+    const roundedLon = Math.round(lon * 10000) / 10000;
+    const locationSeed = roundedLat * 1000000 + roundedLon;
 
-        usedIndices.add(randomIndex);
+    // Generate 10 deterministic doctors within 5km
+    const generatedDoctors: Doctor[] = [];
+    const usedIndices = new Set<number>();
 
-        const mockDoctor = MOCK_DOCTORS[randomIndex];
-        // Generate position with minimum 0.5km distance
-        const [doctorLat, doctorLon] = generateRandomPosition(lat, lon, 3, 0.5);
-        const distance = calculateDistance(lat, lon, doctorLat, doctorLon);
+    // Use seeded random to deterministically select doctor indices
+    let seedOffset = 0;
+    while (
+      generatedDoctors.length < 10 &&
+      usedIndices.size < MOCK_DOCTORS.length
+    ) {
+      // Use seeded random to pick doctor index deterministically
+      const randomValue = seededRandom(locationSeed + seedOffset);
+      const randomIndex = Math.floor(randomValue * MOCK_DOCTORS.length);
+      seedOffset++;
 
-        generatedDoctors.push({
-          ...mockDoctor,
-          position: [doctorLat, doctorLon] as LatLngExpression,
-          distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-        });
+      if (usedIndices.has(randomIndex)) {
+        continue;
       }
 
-      // Sort by distance
-      generatedDoctors.sort((a, b) => a.distance - b.distance);
+      usedIndices.add(randomIndex);
 
-      // Use setTimeout to avoid cascading renders
-      setTimeout(() => {
-        setDoctors(generatedDoctors);
-      }, 0);
-    } else {
-      setDoctors([]);
+      const mockDoctor = MOCK_DOCTORS[randomIndex];
+      // Generate position with minimum 0.5km distance using seeded random
+      // Each doctor gets a unique seed based on location + index
+      const doctorSeed = locationSeed + randomIndex * 1000;
+      const [doctorLat, doctorLon] = generateRandomPosition(
+        lat,
+        lon,
+        doctorSeed,
+        3,
+        0.5
+      );
+      const distance = calculateDistance(lat, lon, doctorLat, doctorLon);
+
+      generatedDoctors.push({
+        ...mockDoctor,
+        position: [doctorLat, doctorLon] as LatLngExpression,
+        distance: Math.round(distance * 10) / 10, // Round to 1 decimal
+      });
     }
+
+    // Sort first by availability (doctors with seats first), then by distance
+    generatedDoctors.sort((a, b) => {
+      // First, sort by availability (hasSeats: true comes first)
+      if (a.hasSeats !== b.hasSeats) {
+        return b.hasSeats ? 1 : -1;
+      }
+      // If availability is the same, sort by distance
+      return a.distance - b.distance;
+    });
+
+    return generatedDoctors;
   }, [selectedLocation]);
 
   // Debounced autocomplete search
@@ -685,7 +717,6 @@ export function DoctorSelectionMap({
         } else {
           alert("Adresă negăsită. Te rog încearcă o altă adresă.");
           setSelectedLocation(null);
-          setDoctors([]);
         }
 
         setIsSearching(false);
@@ -722,7 +753,6 @@ export function DoctorSelectionMap({
       } else {
         alert("Adresă negăsită. Te rog încearcă o altă adresă.");
         setSelectedLocation(null);
-        setDoctors([]);
       }
 
       setIsSearching(false);
@@ -1165,7 +1195,6 @@ export function DoctorSelectionMap({
                             e.preventDefault();
                             setSearchAddress("");
                             setSelectedLocation(null);
-                            setDoctors([]);
                             setShowSuggestions(false);
                             setAutocompleteSuggestions([]);
                             setHighlightedIndex(-1);

@@ -31,6 +31,8 @@ import {
   type Doctor,
 } from "@/components/doctor-selection-map";
 import { Progress } from "@/components/ui/progress";
+import { SignatureDialog } from "@/components/signature-dialog";
+import { generatePDFAsBase64 } from "@/lib/pdf-generator";
 
 type ChatMessage = {
   id: string;
@@ -54,6 +56,10 @@ type ChatMessage = {
     completedText?: string;
   };
   showSignButton?: boolean;
+  signed?: boolean; // Whether the signature has been submitted
+  showConfirmButton?: boolean;
+  showSuccessButtons?: boolean;
+  pdfData?: string; // Base64 PDF data for download
 };
 
 type ConversationFlowState = null | "asking_reason" | "asking_new_address";
@@ -253,10 +259,57 @@ export default function ClientPage() {
     null
   );
   const [flowState, setFlowState] = useState<ConversationFlowState>(null);
+  const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<{
+    name: string;
+    specialty?: string;
+  } | null>(null);
+  const [pendingRequestData, setPendingRequestData] = useState<{
+    signatureDataUrl: string;
+    userData: any;
+  } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize after hydration to avoid SSR mismatch
   React.useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Handle PDF download
+  const handleDownloadPDF = useCallback((pdfData: string) => {
+    try {
+      // Convert base64 to blob
+      const byteCharacters = atob(pdfData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `cerere-inscriere-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+    }
+  }, []);
+
+  // Handle starting new conversation
+  const handleStartNewConversation = useCallback(() => {
+    setMessages([]);
+    setInputValue("");
+    setFlowState(null);
+    setSelectedDoctor(null);
+    setPendingRequestData(null);
   }, []);
 
   // Show history only when there are no messages (history hides after first message is submitted)
@@ -382,6 +435,11 @@ export default function ClientPage() {
         };
         setMessages((prev) => [...prev, confirmationMessage]);
         setStreamingMessageId(confirmationMessageId);
+        // Store selected doctor for PDF generation
+        setSelectedDoctor({
+          name: doctor.name,
+          specialty: doctor.specialty,
+        });
 
         // Start typing animation immediately
         simulateTyping(confirmationMessageId, confirmationContent);
@@ -829,6 +887,105 @@ export default function ClientPage() {
                         return content;
                       };
 
+                      const formatSuccessMessage = (
+                        content: string
+                      ): React.ReactNode => {
+                        const successText = "Cererea a fost trimisă cu succes!";
+                        const nextStepsText = "Ce urmează:";
+
+                        // Helper to convert text with newlines to React nodes
+                        const textWithNewlines = (
+                          text: string,
+                          keyPrefix: string
+                        ): React.ReactNode[] => {
+                          if (!text) return [];
+                          const lines = text.split("\n");
+                          const nodes: React.ReactNode[] = [];
+                          lines.forEach((line, idx) => {
+                            if (idx > 0) {
+                              nodes.push(<br key={`${keyPrefix}-br-${idx}`} />);
+                            }
+                            if (line) {
+                              nodes.push(line);
+                            }
+                          });
+                          return nodes;
+                        };
+
+                        const parts: React.ReactNode[] = [];
+
+                        // Split content into segments
+                        const successIndex = content.indexOf(successText);
+                        const nextStepsIndex = content.indexOf(nextStepsText);
+
+                        if (successIndex !== -1) {
+                          // Text before success message
+                          if (successIndex > 0) {
+                            parts.push(
+                              ...textWithNewlines(
+                                content.slice(0, successIndex),
+                                "before-success"
+                              )
+                            );
+                          }
+                          // Bold success text
+                          parts.push(
+                            <strong key="success">{successText}</strong>
+                          );
+
+                          if (
+                            nextStepsIndex !== -1 &&
+                            nextStepsIndex > successIndex
+                          ) {
+                            // Text between success and next steps
+                            const betweenText = content.slice(
+                              successIndex + successText.length,
+                              nextStepsIndex
+                            );
+                            parts.push(
+                              ...textWithNewlines(betweenText, "between")
+                            );
+                            // Bold next steps text
+                            parts.push(
+                              <strong key="next-steps">{nextStepsText}</strong>
+                            );
+                            // Text after next steps
+                            const afterText = content.slice(
+                              nextStepsIndex + nextStepsText.length
+                            );
+                            parts.push(...textWithNewlines(afterText, "after"));
+                          } else {
+                            // No next steps text found, just add remaining content
+                            const afterText = content.slice(
+                              successIndex + successText.length
+                            );
+                            parts.push(...textWithNewlines(afterText, "after"));
+                          }
+                        } else if (nextStepsIndex !== -1) {
+                          // Only next steps text found (unlikely but handle it)
+                          if (nextStepsIndex > 0) {
+                            parts.push(
+                              ...textWithNewlines(
+                                content.slice(0, nextStepsIndex),
+                                "before-next"
+                              )
+                            );
+                          }
+                          parts.push(
+                            <strong key="next-steps">{nextStepsText}</strong>
+                          );
+                          const afterText = content.slice(
+                            nextStepsIndex + nextStepsText.length
+                          );
+                          parts.push(...textWithNewlines(afterText, "after"));
+                        } else {
+                          // Neither found, return content as is
+                          return content;
+                        }
+
+                        return <>{parts}</>;
+                      };
+
                       const formatDoctorMessage = (
                         message: ChatMessage,
                         content: string
@@ -917,6 +1074,10 @@ export default function ClientPage() {
                                       message,
                                       message.content
                                     )
+                                  : message.content.includes(
+                                      "Cererea a fost trimisă cu succes!"
+                                    )
+                                  ? formatSuccessMessage(message.content)
                                   : formatMessageContent(message.content)}
                               </MessageContent>
                             )
@@ -987,24 +1148,177 @@ export default function ClientPage() {
                               <Sources sources={message.sources} />
                             </div>
                           )}
-                          {message.showSignButton && (
+                          {message.showSuccessButtons && message.pdfData && (
+                            <div className="mt-3 flex gap-2">
+                              <Button
+                                onClick={() => {
+                                  handleDownloadPDF(message.pdfData!);
+                                }}
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                Descarcă cererea
+                              </Button>
+                              <Button
+                                onClick={handleStartNewConversation}
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                Începe conversație nouă
+                              </Button>
+                            </div>
+                          )}
+                          {message.showSignButton && !message.signed && (
                             <div className="mt-3">
                               <Button
                                 onClick={() => {
-                                  // Handle sign button click
-                                  const signMessageId = nanoid();
-                                  const signMessage: ChatMessage = {
-                                    id: signMessageId,
-                                    content:
-                                      "Cererea a fost semnată cu succes!",
-                                    role: "assistant",
-                                    timestamp: new Date(),
-                                  };
-                                  setMessages((prev) => [...prev, signMessage]);
+                                  setIsSignatureDialogOpen(true);
                                 }}
                                 className="w-full"
                               >
                                 Semnează cererea
+                              </Button>
+                            </div>
+                          )}
+                          {message.signed && (
+                            <div className="mt-3 text-sm text-muted-foreground">
+                              Cerere semnată cu succes
+                            </div>
+                          )}
+                          {message.showConfirmButton && (
+                            <div className="mt-3">
+                              <Button
+                                onClick={async () => {
+                                  if (!pendingRequestData || !selectedDoctor)
+                                    return;
+
+                                  // Show user confirmation message
+                                  const userConfirmMessage: ChatMessage = {
+                                    id: nanoid(),
+                                    content:
+                                      "Confirm ca vreau sa trimit cererea",
+                                    role: "user",
+                                    timestamp: new Date(),
+                                  };
+                                  setMessages((prev) => [
+                                    ...prev,
+                                    userConfirmMessage,
+                                  ]);
+
+                                  setIsSubmitting(true);
+                                  try {
+                                    // Generate PDF as base64
+                                    const pdfBase64 = await generatePDFAsBase64(
+                                      {
+                                        signatureDataUrl:
+                                          pendingRequestData.signatureDataUrl,
+                                        doctorName: selectedDoctor.name,
+                                        userData: pendingRequestData.userData,
+                                      }
+                                    );
+
+                                    // Save to database
+                                    const response = await fetch(
+                                      "/api/requests",
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          patientName:
+                                            pendingRequestData.userData.name,
+                                          patientCnp:
+                                            pendingRequestData.userData.cnp,
+                                          patientBirthDate:
+                                            pendingRequestData.userData
+                                              .birthDate,
+                                          patientCitizenship:
+                                            pendingRequestData.userData
+                                              .citizenship,
+                                          patientAddress:
+                                            pendingRequestData.userData.address,
+                                          patientIdType:
+                                            pendingRequestData.userData.idType,
+                                          patientIdSeries:
+                                            pendingRequestData.userData
+                                              .idSeries,
+                                          patientIdNumber:
+                                            pendingRequestData.userData
+                                              .idNumber,
+                                          patientIdIssuedBy:
+                                            pendingRequestData.userData
+                                              .idIssuedBy,
+                                          patientIdIssueDate:
+                                            pendingRequestData.userData
+                                              .idIssueDate,
+                                          doctorName: selectedDoctor.name,
+                                          doctorSpecialty:
+                                            selectedDoctor.specialty,
+                                          pdfData: pdfBase64,
+                                          signatureDataUrl:
+                                            pendingRequestData.signatureDataUrl,
+                                        }),
+                                      }
+                                    );
+
+                                    if (!response.ok) {
+                                      throw new Error("Failed to save request");
+                                    }
+
+                                    // Show success message
+                                    const successMessageId = nanoid();
+                                    const successMessage: ChatMessage = {
+                                      id: successMessageId,
+                                      content: `Cererea a fost trimisă cu succes!\nAi trimis în format digital solicitarea de înscriere la ${selectedDoctor.name}. Acum, medicul va revizui cererea cu ajutorul Ana.\n\nCe urmează:\nMedicul de familie are la dispoziție legal 15 zile pentru a aproba cererea. Vei primi o notificare imediată prin Ana când înscrierea este confirmată. Nu este necesară nicio deplasare fizică.`,
+                                      role: "assistant",
+                                      timestamp: new Date(),
+                                      showSuccessButtons: true,
+                                      pdfData: pdfBase64,
+                                    };
+                                    setMessages((prev) => [
+                                      ...prev,
+                                      successMessage,
+                                    ]);
+
+                                    // Clear pending data
+                                    setPendingRequestData(null);
+
+                                    // Remove confirm button from the message
+                                    setMessages((prev) =>
+                                      prev.map((msg) =>
+                                        msg.id === message.id
+                                          ? { ...msg, showConfirmButton: false }
+                                          : msg
+                                      )
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      "Error submitting request:",
+                                      error
+                                    );
+                                    const errorMessageId = nanoid();
+                                    const errorMessage: ChatMessage = {
+                                      id: errorMessageId,
+                                      content:
+                                        "A apărut o eroare la trimiterea cererii. Te rog încearcă din nou.",
+                                      role: "assistant",
+                                      timestamp: new Date(),
+                                    };
+                                    setMessages((prev) => [
+                                      ...prev,
+                                      errorMessage,
+                                    ]);
+                                  } finally {
+                                    setIsSubmitting(false);
+                                  }
+                                }}
+                                className="w-full"
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting
+                                  ? "Se trimite..."
+                                  : "Trimite solicitarea"}
                               </Button>
                             </div>
                           )}
@@ -1034,6 +1348,89 @@ export default function ClientPage() {
           </div>
         </div>
       </SidebarInset>
+      <SignatureDialog
+        open={isSignatureDialogOpen}
+        onOpenChange={setIsSignatureDialogOpen}
+        onSignatureSubmit={(dataUrl) => {
+          // Store the signature in pending request data
+
+          // Parse user address from USER_ADDRESS constant
+          // Format: "Sector 6, Mun.Bucureşti, Str.Dezrobirii, nr. 25, bl. 1, sc. 2, et. 7, ap. 91"
+          const addressParts = USER_ADDRESS.split(",").map((s) => s.trim());
+          const sectorMatch = addressParts.find((p) => p.startsWith("Sector"));
+          const streetMatch = addressParts.find((p) => p.startsWith("Str."));
+          const numberMatch = addressParts.find((p) => p.startsWith("nr."));
+          const blockMatch = addressParts.find((p) => p.startsWith("bl."));
+          const entranceMatch = addressParts.find((p) => p.startsWith("sc."));
+          const apartmentMatch = addressParts.find((p) => p.startsWith("ap."));
+
+          // Extract values
+          const sector = sectorMatch
+            ? sectorMatch.replace("Sector", "").trim()
+            : "";
+          const street = streetMatch
+            ? streetMatch.replace("Str.", "").trim()
+            : "";
+          const number = numberMatch
+            ? numberMatch.replace("nr.", "").trim()
+            : "";
+          const block = blockMatch ? blockMatch.replace("bl.", "").trim() : "";
+          const entrance = entranceMatch
+            ? entranceMatch.replace("sc.", "").trim()
+            : "";
+          const apartment = apartmentMatch
+            ? apartmentMatch.replace("ap.", "").trim()
+            : "";
+
+          // Prepare user data for PDF
+          const userData = {
+            name: "GEORGESCU ANDREI",
+            cnp: "1901213254491",
+            birthDate: "19.01.1993", // Extracted from CNP (first 6 digits: 190119)
+            citizenship: "romana",
+            address: {
+              street: street || "Dezrobirii",
+              number: number || "25",
+              block: block || "1",
+              entrance: entrance || "2",
+              apartment: apartment || "91",
+              sector: `Sector ${sector || "6"}`,
+            },
+            idType: "Carte de identitate",
+            idSeries: "AX",
+            idNumber: "123456",
+            idIssuedBy: "SPCLEP Sector 6",
+            idIssueDate: "15.03.2020",
+          };
+
+          // Store pending request data
+          setPendingRequestData({
+            signatureDataUrl: dataUrl,
+            userData: userData,
+          });
+
+          // Mark the message with sign button as signed and hide the button
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.showSignButton
+                ? { ...msg, showSignButton: false, signed: true }
+                : msg
+            )
+          );
+
+          // Show confirmation message with button
+          const confirmMessageId = nanoid();
+          const confirmMessage: ChatMessage = {
+            id: confirmMessageId,
+            content:
+              "Am colectat toate informațiile necesare. Te rog confirmă că vrei să trimiți solicitarea.",
+            role: "assistant",
+            timestamp: new Date(),
+            showConfirmButton: true,
+          };
+          setMessages((prev) => [...prev, confirmMessage]);
+        }}
+      />
     </SidebarProvider>
   );
 }

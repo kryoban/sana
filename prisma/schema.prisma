@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Request {
+  id                      Int      @id @default(autoincrement())
+  patientName             String   @map("patient_name") @db.VarChar(255)
+  patientCnp              String   @map("patient_cnp") @db.VarChar(13)
+  patientBirthDate        String   @map("patient_birth_date") @db.VarChar(10)
+  patientCitizenship      String   @map("patient_citizenship") @db.VarChar(100)
+  patientAddressStreet    String   @map("patient_address_street") @db.VarChar(255)
+  patientAddressNumber    String?  @map("patient_address_number") @db.VarChar(50)
+  patientAddressBlock     String?  @map("patient_address_block") @db.VarChar(50)
+  patientAddressEntrance  String?  @map("patient_address_entrance") @db.VarChar(50)
+  patientAddressApartment String?  @map("patient_address_apartment") @db.VarChar(50)
+  patientAddressSector    String   @map("patient_address_sector") @db.VarChar(100)
+  patientIdType           String   @map("patient_id_type") @db.VarChar(100)
+  patientIdSeries         String   @map("patient_id_series") @db.VarChar(50)
+  patientIdNumber         String   @map("patient_id_number") @db.VarChar(50)
+  patientIdIssuedBy       String   @map("patient_id_issued_by") @db.VarChar(255)
+  patientIdIssueDate      String   @map("patient_id_issue_date") @db.VarChar(10)
+  doctorName              String   @map("doctor_name") @db.VarChar(255)
+  doctorSpecialty         String?  @map("doctor_specialty") @db.VarChar(255)
+  pdfData                 Bytes    @map("pdf_data")
+  signatureDataUrl        String   @map("signature_data_url") @db.Text
+  status                  String   @default("pending") @db.VarChar(50)
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([patientCnp], name: "idx_requests_cnp")
+  @@index([status], name: "idx_requests_status")
+  @@index([createdAt(sort: Desc)], name: "idx_requests_created_at")
+  @@map("requests")
+}

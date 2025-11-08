@@ -2,15 +2,28 @@
 
 import Image from "next/image";
 import {
-  BookUser,
   Calendar,
-  ChartColumn,
-  FileSpreadsheet,
-  LayoutDashboard,
-  Pill,
+  CalendarClock,
   Search,
-  Sparkles,
   User,
+  AlertTriangle,
+  UserPlus,
+  FileText,
+  Users,
+  FileEdit,
+  History,
+  Settings,
+  CreditCard,
+  TrendingUp,
+  BarChart,
+  UserCog,
+  CalendarPlus,
+  FileSearch,
+  Stethoscope,
+  Baby,
+  List,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,14 +37,27 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
 
-type MenuItem = {
-  icon: LucideIcon;
+type SubMenuItem = {
   label: string;
   href?: string;
+  badge?: number | string;
+};
+
+type MenuItem = {
+  icon?: LucideIcon;
+  label: string;
+  href?: string;
+  badge?: number | string;
+  subItems?: SubMenuItem[];
 };
 
 type MenuSection = {
@@ -43,21 +69,116 @@ type SidebarVariant = "pacient" | "medic";
 
 const pacientMenuSections: MenuSection[] = [
   {
-    label: "Activitate",
+    label: "Acțiuni rapide",
     items: [
       {
-        icon: BookUser,
-        label: "Fișa mea",
+        icon: CalendarPlus,
+        label: "Programare nouă",
         href: "#",
       },
       {
-        icon: FileSpreadsheet,
-        label: "Documente eliberate",
+        icon: FileSearch,
+        label: "Solicită document",
         href: "#",
       },
       {
-        icon: Sparkles,
-        label: "Discută cu Ana",
+        icon: UserPlus,
+        label: "Înscriere/schimbare medic",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Sănătatea Mea",
+    items: [
+      {
+        icon: History,
+        label: "Istoric medical",
+        href: "#",
+      },
+      {
+        icon: FileText,
+        label: "Documentele mele",
+        subItems: [
+          {
+            label: "Trimiteri",
+            href: "#",
+          },
+          {
+            label: "Rețete",
+            href: "#",
+          },
+          {
+            label: "Adeverințe",
+            href: "#",
+          },
+          {
+            label: "Analize și Rezultate",
+            href: "#",
+          },
+        ],
+      },
+      {
+        icon: Stethoscope,
+        label: "Medicul meu",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Familia mea",
+    items: [
+      {
+        icon: Baby,
+        label: "Maria Georgescu",
+        subItems: [
+          {
+            label: "Calendarul Copilului (Vaccinuri & Creștere)",
+            href: "#",
+          },
+          {
+            label: "Istoric Medical Copil",
+            href: "#",
+          },
+          {
+            label: "Documente Copil",
+            href: "#",
+          },
+        ],
+      },
+      {
+        icon: Baby,
+        label: "Înscrie un nou născut",
+        href: "#",
+      },
+      {
+        icon: UserPlus,
+        label: "Adaugă un membru de familie",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Programări",
+    items: [
+      {
+        icon: CalendarPlus,
+        label: "Programează o consultație",
+        href: "#",
+      },
+      {
+        icon: List,
+        label: "Lista programărilor mele",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Cont & Setări",
+    items: [
+      {
+        icon: Settings,
+        label: "Setări cont",
         href: "#",
       },
     ],
@@ -66,46 +187,94 @@ const pacientMenuSections: MenuSection[] = [
 
 const medicMenuSections: MenuSection[] = [
   {
-    label: "Activitate",
+    label: "Prioritățile Zilei",
     items: [
       {
-        icon: LayoutDashboard,
-        label: "Dashboard",
+        icon: CalendarClock,
+        label: "Programarile de azi",
         href: "#",
       },
       {
-        icon: FileSpreadsheet,
-        label: "Eliberare documente",
+        icon: AlertTriangle,
+        label: "Alerte AI (Pacienți Risc Înalt)",
         href: "#",
       },
       {
-        icon: Sparkles,
-        label: "Discută cu Ana",
+        icon: UserPlus,
+        label: "Cereri de inscriere Noi",
+        href: "#",
+        badge: "3",
+      },
+      {
+        icon: FileText,
+        label: "Cereri Documente/Rețete",
+        href: "#",
+        badge: "5",
+      },
+    ],
+  },
+  {
+    label: "Pacienți & Documente",
+    items: [
+      {
+        icon: Users,
+        label: "Lista pacienti",
+        href: "#",
+        badge: "42",
+      },
+      {
+        icon: FileEdit,
+        label: "Emite Document",
+        href: "#",
+      },
+      {
+        icon: History,
+        label: "Istoric documente",
         href: "#",
       },
     ],
   },
   {
-    label: "Pacienti",
+    label: "Calendar",
     items: [
-      {
-        icon: BookUser,
-        label: "Fisa pacient",
-        href: "#",
-      },
       {
         icon: Calendar,
         label: "Programari",
         href: "#",
       },
       {
-        icon: ChartColumn,
-        label: "Rapoarte medicale",
+        icon: Settings,
+        label: "Setări Program",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Administrare cabinet",
+    items: [
+      {
+        icon: CreditCard,
+        label: "Taxe",
         href: "#",
       },
       {
-        icon: Pill,
-        label: "Vaccinuri",
+        icon: TrendingUp,
+        label: "Rapoarte Financiare",
+        href: "#",
+      },
+      {
+        icon: BarChart,
+        label: "Statistici",
+        href: "#",
+      },
+    ],
+  },
+  {
+    label: "Cont & Setări",
+    items: [
+      {
+        icon: UserCog,
+        label: "Setări cont",
         href: "#",
       },
     ],
@@ -119,6 +288,19 @@ interface AppSidebarProps {
 export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
   const menuSections =
     variant === "medic" ? medicMenuSections : pacientMenuSections;
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleItem = (itemKey: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemKey)) {
+        newSet.delete(itemKey);
+      } else {
+        newSet.add(itemKey);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <Sidebar>
@@ -147,11 +329,7 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
       <div className="p-2 border-b border-sidebar-border">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-sidebar-foreground/50" />
-          <SidebarInput
-            type="search"
-            placeholder="Caută..."
-            className="pl-8"
-          />
+          <SidebarInput type="search" placeholder="Caută..." className="pl-8" />
         </div>
       </div>
       <SidebarContent>
@@ -161,15 +339,84 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item, itemIndex) => {
+                  const itemKey = `${sectionIndex}-${itemIndex}`;
+                  const isExpanded = expandedItems.has(itemKey);
+                  const hasSubItems = item.subItems && item.subItems.length > 0;
                   const Icon = item.icon;
+
                   return (
                     <SidebarMenuItem key={itemIndex}>
-                      <SidebarMenuButton asChild>
-                        <a href={item.href || "#"}>
-                          <Icon />
-                          <span>{item.label}</span>
-                        </a>
+                      <SidebarMenuButton
+                        asChild={!hasSubItems}
+                        onClick={
+                          hasSubItems
+                            ? (e) => {
+                                e.preventDefault();
+                                toggleItem(itemKey);
+                              }
+                            : undefined
+                        }
+                      >
+                        {hasSubItems ? (
+                          <div className="flex items-center w-full">
+                            {Icon && <Icon />}
+                            <span className="flex-1 truncate">
+                              {item.label}
+                            </span>
+                            {item.badge && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-auto shrink-0 h-5 min-w-5 px-1.5 text-xs mr-2"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
+                            {isExpanded ? (
+                              <ChevronDown className="size-4 shrink-0" />
+                            ) : (
+                              <ChevronRight className="size-4 shrink-0" />
+                            )}
+                          </div>
+                        ) : (
+                          <a href={item.href || "#"}>
+                            {Icon && <Icon />}
+                            <span className="flex-1 truncate">
+                              {item.label}
+                            </span>
+                            {item.badge && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-auto shrink-0 h-5 min-w-5 px-1.5 text-xs"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </a>
+                        )}
                       </SidebarMenuButton>
+                      {hasSubItems && isExpanded && (
+                        <SidebarMenuSub>
+                          {item.subItems!.map((subItem, subIndex) => (
+                            <SidebarMenuSubItem key={subIndex}>
+                              <SidebarMenuSubButton asChild>
+                                <a href={subItem.href || "#"}>
+                                  <span className="flex-1 truncate">
+                                    {subItem.label}
+                                  </span>
+                                  {subItem.badge && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="ml-auto shrink-0 h-5 min-w-5 px-1.5 text-xs"
+                                    >
+                                      {subItem.badge}
+                                    </Badge>
+                                  )}
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      )}
                     </SidebarMenuItem>
                   );
                 })}
@@ -198,4 +445,3 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
     </Sidebar>
   );
 }
-
