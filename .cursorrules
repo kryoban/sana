@@ -1,0 +1,22 @@
+# Project Rules
+
+## UI Components
+
+- **ONLY use shadcn/ui components** for every UI element in the application
+- Do not create custom UI components from scratch
+- Do not use other UI libraries (Material-UI, Ant Design, Chakra UI, etc.)
+- If a UI element is needed, check if shadcn/ui has a component for it first
+- If shadcn/ui doesn't have the exact component, use the closest shadcn/ui component and extend/customize it rather than creating a new one from scratch
+
+## Component Standards
+
+- Always install shadcn/ui components using the official CLI when adding new components
+- Follow shadcn/ui component patterns and structure
+- Use the CSS variables from the theme (defined in globals.css) for styling
+- Maintain consistency with shadcn/ui design patterns
+
+## Theme
+
+- Use the shadcn/ui blue theme that's configured in globals.css
+- All colors should use CSS variables (--primary, --background, etc.)
+- Support both light and dark modes using the .dark class
