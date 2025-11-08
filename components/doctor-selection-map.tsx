@@ -166,12 +166,14 @@ function DoctorMarker({
   onSelect,
   markerRef,
   readonly = false,
+  onDoctorSelected,
 }: {
   doctor: Doctor;
   isSelected: boolean;
   onSelect: () => void;
   markerRef: (ref: any) => void;
   readonly?: boolean;
+  onDoctorSelected?: (doctor: Doctor) => void;
 }) {
   const markerRefInternal = useRef<any>(null);
 
@@ -192,11 +194,14 @@ function DoctorMarker({
       position={doctor.position}
       icon={
         <div
-          className={`size-10 rounded-full bg-red-500 flex items-center justify-center text-white shadow-lg border-2 ${
+          className={`size-10 rounded-full flex items-center justify-center text-white shadow-lg border-2 ${
             isSelected
               ? "border-blue-500 ring-4 ring-blue-500/30"
               : "border-white"
           }`}
+          style={{
+            backgroundColor: doctor.hasSeats ? "#06A600" : "#6B7280",
+          }}
         >
           <Stethoscope className="size-5" />
         </div>
@@ -216,24 +221,27 @@ function DoctorMarker({
         <MapPopup>
           <div className="p-2 space-y-2">
             <h3 className="font-semibold text-lg mb-1">{doctor.name}</h3>
-            {doctor.specialty && (
-              <p className="text-sm text-muted-foreground mb-2">
-                {doctor.specialty}
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground mb-2">
+              {doctor.specialty
+                ? `Medic de familie, ${doctor.specialty}`
+                : "Medic de familie"}
+            </p>
             <div className="flex items-center justify-center mb-2">
               <span className="text-sm text-muted-foreground">
                 Distanță: {doctor.distance} km
               </span>
             </div>
-            <Badge
-              variant={doctor.hasSeats ? "default" : "secondary"}
-              className="text-xs"
-            >
-              {doctor.hasSeats
-                ? "Locuri disponibile: Da"
-                : "Locuri disponibile: Nu"}
-            </Badge>
+            {onDoctorSelected && (
+              <Button
+                onClick={() => onDoctorSelected(doctor)}
+                size="sm"
+                className="w-full mt-2 shadow-lg bg-[#FF008C] hover:bg-[#E6007A] text-white"
+              >
+                {doctor.hasSeats
+                  ? "Alege medic"
+                  : "Înscrie-te pe lista de așteptare"}
+              </Button>
+            )}
           </div>
         </MapPopup>
       )}
@@ -927,11 +935,11 @@ export function DoctorSelectionMap({
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{doctor.name}</h4>
-                      {doctor.specialty && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {doctor.specialty}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {doctor.specialty
+                          ? `Medic de familie, ${doctor.specialty}`
+                          : "Medic de familie"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
@@ -941,10 +949,17 @@ export function DoctorSelectionMap({
                     <Badge
                       variant={doctor.hasSeats ? "default" : "secondary"}
                       className="text-xs"
+                      style={
+                        doctor.hasSeats
+                          ? {
+                              backgroundColor: "#06A600",
+                              color: "#ffffff",
+                              borderColor: "#06A600",
+                            }
+                          : undefined
+                      }
                     >
-                      {doctor.hasSeats
-                        ? "Locuri disponibile: Da"
-                        : "Locuri disponibile: Nu"}
+                      {doctor.hasSeats ? "Disponibil" : "Indisponibil"}
                     </Badge>
                   </div>
                 </button>
@@ -1017,7 +1032,13 @@ export function DoctorSelectionMap({
                 <MapMarker
                   position={selectedLocation.coordinates}
                   icon={
-                    <div className="size-10 rounded-full bg-yellow-500 flex items-center justify-center text-white shadow-lg border-2 border-white ring-4 ring-yellow-500/30">
+                    <div
+                      className="size-10 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white ring-4"
+                      style={{
+                        backgroundColor: "#250065",
+                        boxShadow: "0 0 0 4px rgba(37, 0, 101, 0.3)",
+                      }}
+                    >
                       <MapPinIcon className="size-6" />
                     </div>
                   }
@@ -1063,6 +1084,7 @@ export function DoctorSelectionMap({
                     }
                   }}
                   readonly={readonly}
+                  onDoctorSelected={onDoctorSelected}
                 />
               ))}
             </Map>
@@ -1084,25 +1106,6 @@ export function DoctorSelectionMap({
                 onClick={handleLocateClick}
                 isLocating={isLocating}
               />
-            )}
-
-            {/* Floating action button for selected doctor */}
-            {selectedDoctor && !readonly && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]">
-                <Button
-                  onClick={() => onDoctorSelected?.(selectedDoctor)}
-                  size="lg"
-                  className={`shadow-lg ${
-                    selectedDoctor.hasSeats
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-orange-600 hover:bg-orange-700 text-white"
-                  }`}
-                >
-                  {selectedDoctor.hasSeats
-                    ? "Alege medic"
-                    : "Înscrie-te pe lista de așteptare"}
-                </Button>
-              </div>
             )}
 
             {/* Search bar overlay */}
@@ -1184,7 +1187,7 @@ export function DoctorSelectionMap({
                             setHighlightedIndex(-1);
                           }
                         }}
-                        className={`bg-background/95 backdrop-blur-sm h-9 text-sm ${
+                        className={`bg-background/95 backdrop-blur-sm h-9 text-sm focus-visible:border-[#FF008C] focus-visible:ring-[#FF008C]/50 ${
                           searchAddress ? "pr-8" : ""
                         }`}
                       />
@@ -1257,15 +1260,15 @@ export function DoctorSelectionMap({
                       size="sm"
                       className={`h-9 transition-colors ${
                         searchAddress.trim()
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                          : "bg-background/95 backdrop-blur-sm border-2 border-blue-400/50 hover:border-blue-500 hover:bg-blue-50/50"
+                          ? "bg-[#FF008C] hover:bg-[#E6007A] text-white"
+                          : "bg-background/95 backdrop-blur-sm border-2 border-[#FF008C]/50 hover:border-[#FF008C] hover:bg-[#FF008C]/10"
                       }`}
                     >
                       <SearchIcon
                         className={`size-4 ${
                           searchAddress.trim()
                             ? "text-white"
-                            : "text-blue-600 opacity-80"
+                            : "text-[#FF008C] opacity-80"
                         }`}
                       />
                     </Button>

@@ -178,6 +178,7 @@ export function SignatureDialog({
             type="button"
             onClick={handleSubmit}
             disabled={isEmpty}
+            className="bg-[#FF008C] hover:bg-[#E6007A] text-white"
           >
             Trimite semnătura
           </Button>

@@ -166,15 +166,8 @@ const medicMenuSections: MenuSection[] = [
       },
       {
         icon: UserPlus,
-        label: "Cereri de inscriere noi",
+        label: "Cereri noi",
         href: "#",
-        badge: "3",
-      },
-      {
-        icon: FileText,
-        label: "Cereri documente/rețete",
-        href: "#",
-        badge: "5",
       },
     ],
   },
@@ -248,11 +241,34 @@ const medicMenuSections: MenuSection[] = [
 
 interface AppSidebarProps {
   variant?: SidebarVariant;
+  activeMenuItem?: string;
+  pendingRequestsCount?: number;
+  doctorName?: string;
 }
 
-export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
-  const menuSections =
+export function AppSidebar({
+  variant = "pacient",
+  activeMenuItem,
+  pendingRequestsCount,
+  doctorName,
+}: AppSidebarProps) {
+  const baseMenuSections =
     variant === "medic" ? medicMenuSections : pacientMenuSections;
+
+  // Update menu sections with dynamic badge count
+  const menuSections = baseMenuSections.map((section) => ({
+    ...section,
+    items: section.items.map((item) => {
+      if (item.label === "Cereri noi" && pendingRequestsCount !== undefined) {
+        return {
+          ...item,
+          badge: String(pendingRequestsCount),
+        };
+      }
+      return item;
+    }),
+  }));
+
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const toggleItem = (itemKey: string) => {
@@ -269,38 +285,43 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+      <SidebarHeader className="border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center">
+          <div className="flex-shrink-0 h-20 w-56 flex items-center justify-center">
             <Image
               src="/images/logo_ana.svg"
               alt="ANA Logo"
-              width={40}
-              height={40}
+              width={224}
+              height={100}
               className="h-full w-full"
               priority
             />
           </div>
-          <div className="flex flex-col justify-center min-h-[2.5rem]">
+          {/* <div className="flex flex-col justify-center min-h-[2.5rem]">
             <h1 className="text-lg font-bold text-sidebar-foreground leading-tight">
               ANA
             </h1>
             <span className="text-xs text-sidebar-foreground/70 leading-tight">
               v1.0.0
             </span>
-          </div>
+          </div> */}
         </div>
       </SidebarHeader>
-      <div className="p-2 border-b border-sidebar-border">
+      <div className="p-2 border-sidebar-border">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-sidebar-foreground/50" />
+          <Search
+            className="absolute left-2 top-1/2 -translate-y-1/2 size-4"
+            style={{ color: "#FF008C" }}
+          />
           <SidebarInput type="search" placeholder="Caută..." className="pl-8" />
         </div>
       </div>
       <SidebarContent>
         {menuSections.map((section, sectionIndex) => (
           <SidebarGroup key={sectionIndex}>
-            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroupLabel style={{ color: "#734DB4" }}>
+              {section.label}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item, itemIndex) => {
@@ -309,10 +330,13 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
                   const hasSubItems = item.subItems && item.subItems.length > 0;
                   const Icon = item.icon;
 
+                  const isActive = activeMenuItem === item.label;
+
                   return (
                     <SidebarMenuItem key={itemIndex}>
                       <SidebarMenuButton
                         asChild={!hasSubItems}
+                        isActive={isActive}
                         onClick={
                           hasSubItems
                             ? (e) => {
@@ -324,7 +348,7 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
                       >
                         {hasSubItems ? (
                           <div className="flex items-center w-full">
-                            {Icon && <Icon />}
+                            {Icon && <Icon style={{ color: "#FF008C" }} />}
                             <span className="flex-1 truncate">
                               {item.label}
                             </span>
@@ -337,14 +361,20 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
                               </Badge>
                             )}
                             {isExpanded ? (
-                              <ChevronDown className="size-4 shrink-0" />
+                              <ChevronDown
+                                className="size-4 shrink-0"
+                                style={{ color: "#FF008C" }}
+                              />
                             ) : (
-                              <ChevronRight className="size-4 shrink-0" />
+                              <ChevronRight
+                                className="size-4 shrink-0"
+                                style={{ color: "#FF008C" }}
+                              />
                             )}
                           </div>
                         ) : (
                           <a href={item.href || "#"}>
-                            {Icon && <Icon />}
+                            {Icon && <Icon style={{ color: "#FF008C" }} />}
                             <span className="flex-1 truncate">
                               {item.label}
                             </span>
@@ -394,15 +424,12 @@ export function AppSidebar({ variant = "pacient" }: AppSidebarProps) {
         <div className="flex items-center gap-3 w-full">
           <Avatar className="size-8 border border-sidebar-border">
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs">
-              <User className="size-4" />
+              <User className="size-4" style={{ color: "#FF008C" }} />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
             <span className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
-              GEORGESCU ANDREI
-            </span>
-            <span className="text-xs text-sidebar-foreground/70 truncate leading-tight">
-              1901213254491
+              {doctorName || "GEORGESCU ANDREI"}
             </span>
           </div>
         </div>

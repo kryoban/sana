@@ -101,7 +101,7 @@ export const PromptInputTextarea = React.forwardRef<
     <Textarea
       ref={ref}
       className={cn(
-        "min-h-[52px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed",
+        "min-h-[52px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed focus-visible:border-[#FF008C] focus-visible:ring-[#FF008C]/50",
         className
       )}
       placeholder="Bună, Andrei! Cu ce te pot ajuta?"
@@ -133,11 +133,11 @@ export function PromptInputTools({
   return (
     <div className={cn("flex items-center gap-2", className)} {...props}>
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-        <PaperclipIcon className="h-4 w-4" />
+        <PaperclipIcon className="h-4 w-4 text-[#FF008C]" />
         <span className="sr-only">Atașează fișier</span>
       </Button>
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-        <MicIcon className="h-4 w-4" />
+        <MicIcon className="h-4 w-4 text-[#FF008C]" />
         <span className="sr-only">Intrare vocală</span>
       </Button>
     </div>
@@ -154,10 +154,13 @@ export function PromptInputSubmit({
       type="submit"
       size="sm"
       disabled={disabled}
-      className={cn("h-8", className)}
+      className={cn(
+        "h-8 bg-[#FF008C] hover:bg-[#E6007A] text-white",
+        className
+      )}
       {...props}
     >
-      <SendIcon className="h-4 w-4" />
+      <SendIcon className="h-4 w-4 text-white" />
       <span className="sr-only">Trimite mesaj</span>
     </Button>
   );

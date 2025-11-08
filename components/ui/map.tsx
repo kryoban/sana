@@ -634,7 +634,7 @@ function MapZoomControl({ className, ...props }: React.ComponentProps<"div">) {
     <ButtonGroup
       orientation="vertical"
       aria-label="Zoom controls"
-      className={cn("absolute top-1 left-1 z-1000 h-fit", className)}
+      className={cn("absolute bottom-1 left-1 z-1000 h-fit", className)}
       {...props}
     >
       <Button

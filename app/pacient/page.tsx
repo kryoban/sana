@@ -151,7 +151,7 @@ const staticConversationHistory: ConversationHistoryItem[] = [
     date: new Date(2024, 11, 12), // December 12, 2024
     content: "Am nevoie de adeverință de asigurat de la CNAS...",
     badgeText: "Adeverință asigurat",
-    badgeColor: "yellow",
+    badgeColor: "gray",
   },
   {
     id: "3",
@@ -189,7 +189,8 @@ const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
         paddingBottom: "4px",
         paddingLeft: "8px",
         paddingRight: "8px",
-        borderRadius: "6px",
+        lineHeight: "1.25",
+        minHeight: "22px",
       };
     case "yellow":
       return {
@@ -200,7 +201,8 @@ const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
         paddingBottom: "4px",
         paddingLeft: "8px",
         paddingRight: "8px",
-        borderRadius: "6px",
+        lineHeight: "1.25",
+        minHeight: "22px",
       };
     case "red":
       return {
@@ -211,24 +213,14 @@ const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
         paddingBottom: "4px",
         paddingLeft: "8px",
         paddingRight: "8px",
-        borderRadius: "6px",
+        lineHeight: "1.25",
+        minHeight: "22px",
       };
   }
 };
 
-// Get status badge styles matching the type badge dimensions (keep outline variant with border)
-const getStatusBadgeStyles = () => {
-  return {
-    fontWeight: 600,
-    paddingTop: "4px",
-    paddingBottom: "4px",
-    paddingLeft: "8px",
-    paddingRight: "8px",
-    borderRadius: "6px",
-  };
-};
-
 // Get status badge component (matching type badge dimensions, keeping outline variant with border)
+// All badges use consistent padding for same height (matching "Schimbare doctor")
 const getStatusBadge = (status: string) => {
   const statusLabels: Record<string, string> = {
     pending: "În așteptare",
@@ -236,16 +228,60 @@ const getStatusBadge = (status: string) => {
     rejected: "Respinsă",
   };
 
-  const badgeStyles = {
-    ...getStatusBadgeStyles(),
-    // Override rounded-full from Badge base classes
-    borderRadius: "6px !important" as any,
-    // Ensure padding overrides default Badge padding
-    padding: "4px 8px",
-  };
+  // For pending status, use the same yellow style as "Adeverință asigurat"
+  // For approved status, use the same green style as available pins (#06A600)
+  // All badges use consistent padding for same height (matching "Schimbare doctor")
+  const badgeStyles =
+    status === "pending"
+      ? {
+          backgroundColor: "#E8C46880",
+          color: "#3F3F46",
+          fontWeight: 600,
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          lineHeight: "1.25",
+          minHeight: "22px",
+        }
+      : status === "approved"
+      ? {
+          backgroundColor: "#06A600",
+          color: "#FFFFFF",
+          fontWeight: 600,
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          lineHeight: "1.25",
+          minHeight: "22px",
+        }
+      : status === "rejected"
+      ? {
+          backgroundColor: "#DC2626",
+          color: "#FFFFFF",
+          fontWeight: 600,
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          lineHeight: "1.25",
+          minHeight: "22px",
+        }
+      : {
+          fontWeight: 600,
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          lineHeight: "1.25",
+          minHeight: "22px",
+        };
+
+  const badgeClassName = "whitespace-nowrap border-0";
 
   return (
-    <Badge variant="outline" className="whitespace-nowrap" style={badgeStyles}>
+    <Badge variant="outline" className={badgeClassName} style={badgeStyles}>
       {statusLabels[status] || status}
     </Badge>
   );
@@ -324,7 +360,8 @@ export default function ClientPage() {
         (request: any) => ({
           id: `request-${request.id}`,
           date: new Date(request.createdAt),
-          content: "Cerere de schimbare medic trimisă",
+          content:
+            "Cerere de schimbare medic trimisă catre " + request.doctorName,
           badgeText: "Schimbare doctor",
           badgeColor: "red" as const,
           status: request.status, // Include status for database requests
@@ -725,7 +762,7 @@ export default function ClientPage() {
 
       setTimeout(() => {
         if (flowState === "asking_reason") {
-          if (optionValue === "Mi-am schimbat adresa") {
+          if (optionValue === "Mi-am schimbat domiciliul") {
             const assistantMessageId = nanoid();
             const responseContent = `Adresa ta actuală în platformă este ${USER_ADDRESS}.\n\nCare este noua ta adresă? Te rog include strada și număr pentru a îți fi cât mai de ajutor.`;
 
@@ -794,7 +831,10 @@ export default function ClientPage() {
           const assistantMessageId = nanoid();
           const responseContent = "De ce vrei să schimbi medicul de familie?";
           const options = [
-            { label: "Mi-am schimbat adresa", value: "Mi-am schimbat adresa" },
+            {
+              label: "Mi-am schimbat domiciliul",
+              value: "Mi-am schimbat domiciliul",
+            },
             {
               label: "Actualul medic nu e disponibil",
               value: "Actualul medic nu e disponibil",
@@ -1139,7 +1179,7 @@ export default function ClientPage() {
                                 </div>
                                 <Progress
                                   value={message.progressBar.progress}
-                                  className="h-2 w-full"
+                                  className="h-1 w-full"
                                 />
                               </div>
                             </MessageContent>
@@ -1165,7 +1205,8 @@ export default function ClientPage() {
                               <div className="mt-3 flex flex-col gap-2">
                                 {message.options.map((option, index) => {
                                   const isClickable =
-                                    option.value === "Mi-am schimbat adresa";
+                                    option.value ===
+                                    "Mi-am schimbat domiciliul";
                                   return (
                                     <Button
                                       key={index}
@@ -1232,7 +1273,7 @@ export default function ClientPage() {
                                   handleDownloadPDF(message.pdfData!);
                                 }}
                                 variant="outline"
-                                className="flex-1"
+                                className="flex-1 bg-[#FF008C] hover:bg-[#E6007A] text-white hover:text-white border-[#FF008C] hover:border-[#E6007A]"
                               >
                                 Descarcă cererea
                               </Button>
@@ -1251,7 +1292,7 @@ export default function ClientPage() {
                                 onClick={() => {
                                   setIsSignatureDialogOpen(true);
                                 }}
-                                className="w-full"
+                                className="w-full bg-[#FF008C] hover:bg-[#E6007A] text-white"
                               >
                                 Semnează cererea
                               </Button>
@@ -1393,7 +1434,7 @@ export default function ClientPage() {
                                     setIsSubmitting(false);
                                   }
                                 }}
-                                className="w-full"
+                                className="w-full bg-[#FF008C] hover:bg-[#E6007A] text-white"
                                 disabled={isSubmitting}
                               >
                                 {isSubmitting

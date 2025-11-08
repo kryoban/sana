@@ -64,6 +64,15 @@ interface PDFData {
     idIssuedBy: string;
     idIssueDate: string;
   };
+  approvedFields?: {
+    registrationNumber?: string;
+    registrationDate?: string;
+    unitateaSanitara?: string;
+    cui?: string;
+    sediu?: string;
+    casaDeAsigurari?: string;
+    contractNumber?: string;
+  };
 }
 
 /**
@@ -93,29 +102,63 @@ function generatePDFDocument(pdfData: PDFData): Promise<jsPDF> {
     // Registration number line
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    const registrationNumber = pdfData.approvedFields?.registrationNumber || "1";
+    let registrationDate = pdfData.approvedFields?.registrationDate;
+    if (!registrationDate) {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      registrationDate = `${day}/${month}/${year}`;
+    }
     addTextSafe(
       doc,
-      "Nr. inregistrare VIZAT*), ______________/____________",
+      `Nr. inregistrare VIZAT*), ${registrationNumber} / ${registrationDate}`,
       margin,
       yPosition
     );
     yPosition += fieldSpacing + 2;
 
-    // Empty fields (to be left empty) - smaller font for labels
+    // Approved fields (filled in when approved) - smaller font for labels
     doc.setFontSize(10);
-    addTextSafe(doc, "Unitatea sanitara", margin, yPosition);
+    const unitateaSanitara = pdfData.approvedFields?.unitateaSanitara;
+    if (unitateaSanitara) {
+      addTextSafe(doc, `Unitatea sanitara: ${unitateaSanitara}`, margin, yPosition);
+    } else {
+      addTextSafe(doc, "Unitatea sanitara", margin, yPosition);
+    }
     yPosition += fieldSpacing;
 
-    addTextSafe(doc, "CUI", margin, yPosition);
+    const cui = pdfData.approvedFields?.cui;
+    if (cui) {
+      addTextSafe(doc, `CUI: ${cui}`, margin, yPosition);
+    } else {
+      addTextSafe(doc, "CUI", margin, yPosition);
+    }
     yPosition += fieldSpacing;
 
-    addTextSafe(doc, "Sediu (localitate, str., nr.)", margin, yPosition);
+    const sediu = pdfData.approvedFields?.sediu;
+    if (sediu) {
+      addTextSafe(doc, `Sediu (localitate, str., nr.): ${sediu}`, margin, yPosition);
+    } else {
+      addTextSafe(doc, "Sediu (localitate, str., nr.)", margin, yPosition);
+    }
     yPosition += fieldSpacing;
 
-    addTextSafe(doc, "Casa de Asigurari", margin, yPosition);
+    const casaDeAsigurari = pdfData.approvedFields?.casaDeAsigurari;
+    if (casaDeAsigurari) {
+      addTextSafe(doc, `Casa de Asigurari: ${casaDeAsigurari}`, margin, yPosition);
+    } else {
+      addTextSafe(doc, "Casa de Asigurari", margin, yPosition);
+    }
     yPosition += fieldSpacing;
 
-    addTextSafe(doc, "Nr. contract / conventie", margin, yPosition);
+    const contractNumber = pdfData.approvedFields?.contractNumber;
+    if (contractNumber) {
+      addTextSafe(doc, `Nr. contract / conventie: ${contractNumber}`, margin, yPosition);
+    } else {
+      addTextSafe(doc, "Nr. contract / conventie", margin, yPosition);
+    }
     yPosition += fieldSpacing + 8;
 
     // Doctor name
@@ -202,53 +245,44 @@ function generatePDFDocument(pdfData: PDFData): Promise<jsPDF> {
       day: "2-digit",
     });
 
-    // Load image and add to PDF
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const signatureHeight = 30; // Height for signature
-        const signatureWidth = (img.width / img.height) * signatureHeight;
-        const maxSignatureWidth = 80; // Maximum width for signature
-        const finalSignatureWidth = Math.min(signatureWidth, maxSignatureWidth);
-        const finalSignatureHeight =
-          (img.height / img.width) * finalSignatureWidth;
+    // Use fixed signature dimensions (works in Node.js)
+    // jsPDF can handle base64 data URLs directly
+    const signatureHeight = 30; // Height for signature
+    const maxSignatureWidth = 80; // Maximum width for signature
+    const finalSignatureWidth = maxSignatureWidth;
+    const finalSignatureHeight = signatureHeight;
 
-        // Check if we need a new page
-        if (yPosition + finalSignatureHeight + 10 > pageHeight - margin) {
-          doc.addPage();
-          yPosition = margin;
-        }
+    // Check if we need a new page
+    if (yPosition + finalSignatureHeight + 10 > pageHeight - margin) {
+      doc.addPage();
+      yPosition = margin;
+    }
 
-        // Create a two-column layout: Date on left, Signature on right (inline)
-        const leftColumnX = margin;
-        const rightColumnX = pageWidth - margin - finalSignatureWidth - 10;
-        const baselineY = yPosition;
+    // Create a two-column layout: Date on left, Signature on right (inline)
+    const leftColumnX = margin;
+    const rightColumnX = pageWidth - margin - finalSignatureWidth - 10;
+    const baselineY = yPosition;
 
-        // Date on the left, inline with signature
-        doc.setFontSize(10);
-        addTextSafe(doc, `Data: ${currentDate}`, leftColumnX, baselineY);
+    try {
+      // Date on the left, inline with signature
+      doc.setFontSize(10);
+      addTextSafe(doc, `Data: ${currentDate}`, leftColumnX, baselineY);
 
-        // Signature on the right, aligned with date baseline
-        doc.addImage(
-          pdfData.signatureDataUrl,
-          "PNG",
-          rightColumnX,
-          baselineY - finalSignatureHeight + 4, // Align signature baseline with text baseline
-          finalSignatureWidth,
-          finalSignatureHeight
-        );
+      // Signature on the right, aligned with date baseline
+      // jsPDF's addImage can handle base64 data URLs directly in Node.js
+      doc.addImage(
+        pdfData.signatureDataUrl,
+        "PNG",
+        rightColumnX,
+        baselineY - finalSignatureHeight + 4, // Align signature baseline with text baseline
+        finalSignatureWidth,
+        finalSignatureHeight
+      );
 
-        resolve(doc);
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = () => {
-      reject(new Error("Failed to load signature image"));
-    };
-
-    img.src = pdfData.signatureDataUrl;
+      resolve(doc);
+    } catch (error) {
+      reject(new Error(`Failed to add signature image: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    }
   });
 }
 

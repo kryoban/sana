@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { BotIcon, UserIcon } from "lucide-react";
+import { UserIcon } from "lucide-react";
 
 export function Message({
   from,
@@ -55,10 +56,10 @@ export function MessageAvatar({
   return (
     <div
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
         isAssistant
-          ? "bg-primary/10 border-primary/20 text-primary"
-          : "bg-secondary border-border text-muted-foreground",
+          ? "bg-transparent border-0"
+          : "bg-secondary border border-border text-muted-foreground",
         className
       )}
       {...props}
@@ -71,7 +72,13 @@ export function MessageAvatar({
           onError={() => setImageError(true)}
         />
       ) : isAssistant ? (
-        <BotIcon className="h-4 w-4 text-primary" />
+        <Image
+          src="/images/ana_avatar.svg"
+          alt="Ana"
+          width={32}
+          height={32}
+          className="h-8 w-8"
+        />
       ) : (
         <UserIcon className="h-4 w-4 text-muted-foreground" />
       )}

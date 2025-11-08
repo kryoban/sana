@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { User, Stethoscope, LogIn } from "lucide-react";
+import { User, Stethoscope, LogIn, Heart } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Home() {
@@ -127,7 +127,9 @@ export default function Home() {
                     } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                     disabled={isDisabled}
                   >
-                    {tab}
+                    <span className="flex items-center gap-1.5">
+                      {!isDisabled && <Heart className="size-4" />} {tab}
+                    </span>
                   </button>
                 );
               })}
@@ -135,23 +137,27 @@ export default function Home() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="px-6 pb-8">
             {activeTab === "ANA" && (
               <div className="space-y-6">
                 <div>
                   <div className="text-center mb-6">
-                    <h2 className="text-3xl font-semibold text-blue-700 mt-6 mb-2">
-                      ANA - Asistentul Neuro-Artificial
-                    </h2>
-                    <p className="text-base text-gray-600">
-                      Selectați tipul de utilizator pentru a continua
-                    </p>
+                    <div className="flex justify-center mt-6 mb-4">
+                      <Image
+                        src="/images/logo_ana.svg"
+                        alt="ANA - Asistentul Neuro-Artificial"
+                        width={105}
+                        height={46}
+                        className="h-auto w-auto max-w-full"
+                        priority
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <label
                       className={`relative flex flex-col items-center p-6 border-2 rounded-lg cursor-pointer transition-all ${
                         selectedRole === "Pacient"
-                          ? "border-blue-600 bg-blue-50"
+                          ? "border-[#FF008C] bg-[#FF008C]/10"
                           : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                       }`}
                     >
@@ -166,7 +172,7 @@ export default function Home() {
                       <div
                         className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${
                           selectedRole === "Pacient"
-                            ? "bg-blue-600 text-white"
+                            ? "bg-[#FF008C] text-white"
                             : "bg-gray-100 text-gray-400"
                         }`}
                       >
@@ -175,7 +181,7 @@ export default function Home() {
                       <span
                         className={`text-lg font-semibold ${
                           selectedRole === "Pacient"
-                            ? "text-blue-900"
+                            ? "text-[#FF008C]"
                             : "text-gray-900"
                         }`}
                       >
@@ -188,7 +194,7 @@ export default function Home() {
                     <label
                       className={`relative flex flex-col items-center p-6 border-2 rounded-lg cursor-pointer transition-all ${
                         selectedRole === "Medic"
-                          ? "border-blue-600 bg-blue-50"
+                          ? "border-[#FF008C] bg-[#FF008C]/10"
                           : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                       }`}
                     >
@@ -203,7 +209,7 @@ export default function Home() {
                       <div
                         className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${
                           selectedRole === "Medic"
-                            ? "bg-blue-600 text-white"
+                            ? "bg-[#FF008C] text-white"
                             : "bg-gray-100 text-gray-400"
                         }`}
                       >
@@ -212,7 +218,7 @@ export default function Home() {
                       <span
                         className={`text-lg font-semibold ${
                           selectedRole === "Medic"
-                            ? "text-blue-900"
+                            ? "text-[#FF008C]"
                             : "text-gray-900"
                         }`}
                       >
@@ -234,7 +240,7 @@ export default function Home() {
                       }}
                       className={`px-8 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
                         selectedRole
-                          ? "cursor-pointer bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                          ? "cursor-pointer bg-[#FF008C] text-white hover:bg-[#E6007A] shadow-sm"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
                       }`}
                       disabled={!selectedRole}
