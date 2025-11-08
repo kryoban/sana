@@ -23,6 +23,7 @@ export async function GET(
       },
       select: {
         id: true,
+        type: true,
         patientName: true,
         patientCnp: true,
         patientBirthDate: true,
@@ -40,6 +41,7 @@ export async function GET(
         patientIdIssueDate: true,
         doctorName: true,
         doctorSpecialty: true,
+        referralSpecialty: true,
         status: true,
         createdAt: true,
         updatedAt: true,

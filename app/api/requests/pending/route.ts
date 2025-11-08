@@ -10,13 +10,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get latest pending request
-    const latestRequest = await prisma.request.findFirst({
+    // Get all pending requests, sorted by creation date (newest first)
+    const pendingRequests = await prisma.request.findMany({
       where: {
         status: 'pending',
       },
       select: {
         id: true,
+        type: true,
         patientName: true,
         patientCnp: true,
         patientBirthDate: true,
@@ -34,18 +35,19 @@ export async function GET(request: NextRequest) {
         patientIdIssueDate: true,
         doctorName: true,
         doctorSpecialty: true,
+        referralSpecialty: true,
         status: true,
         createdAt: true,
         updatedAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'desc', // newest first
       },
     });
 
     return NextResponse.json({
       count,
-      latestRequest,
+      pendingRequests,
     });
   } catch (error) {
     console.error('Error fetching pending requests:', error);

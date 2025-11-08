@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "build:prod": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,6 +14,7 @@
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:apply-migration": "dotenv -e .env.local -- node scripts/apply-migration.js",
     "postinstall": "prisma generate",
     "docker:build": "docker build -t sana-app .",
     "docker:run": "docker run -p 3000:3000 --env-file .env.production sana-app",
@@ -50,6 +52,7 @@
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.3.1",
     "vaul": "^1.1.2"
   },

@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVerticalIcon, Sparkle, Sparkles } from "lucide-react";
+import { MoreVerticalIcon, Sparkles } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -32,7 +32,6 @@ import {
 } from "@/components/doctor-selection-map";
 import { Progress } from "@/components/ui/progress";
 import { SignatureDialog } from "@/components/signature-dialog";
-import { generatePDFAsBase64 } from "@/lib/pdf-generator";
 
 type ChatMessage = {
   id: string;
@@ -62,7 +61,11 @@ type ChatMessage = {
   pdfData?: string; // Base64 PDF data for download
 };
 
-type ConversationFlowState = null | "asking_reason" | "asking_new_address";
+type ConversationFlowState =
+  | null
+  | "asking_reason"
+  | "asking_new_address"
+  | "asking_referral_specialty";
 
 const USER_ADDRESS =
   "Sector 6, Mun.Bucureşti, Str.Dezrobirii, nr. 25, bl. 1, sc. 2, et. 7, ap. 91";
@@ -80,6 +83,12 @@ const isChangingDoctorMessage = (message: string): boolean => {
     normalized.includes("doctor de familie") ||
     normalized.includes("doctorul de familie")
   );
+};
+
+// Check if message is about referral (trimitere)
+const isReferralMessage = (message: string): boolean => {
+  const normalized = message.toLowerCase();
+  return normalized.includes("trimitere");
 };
 
 const sampleResponses = [
@@ -134,6 +143,8 @@ type ConversationHistoryItem = {
   badgeText: string;
   badgeColor: "gray" | "yellow" | "red";
   status?: string; // Optional status for database requests
+  requestId?: number; // Database request ID for downloading PDF
+  requestType?: string; // Request type: "inscriere" or "trimitere"
 };
 
 // Static conversation history (fallback/example items)
@@ -334,6 +345,10 @@ export default function ClientPage() {
     userData: any;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastInscriereDoctor, setLastInscriereDoctor] = useState<{
+    name: string;
+    specialty?: string;
+  } | null>(null);
   const [conversationHistory, setConversationHistory] = useState<
     ConversationHistoryItem[]
   >(staticConversationHistory);
@@ -355,17 +370,46 @@ export default function ClientPage() {
       const data = await response.json();
       const requests = data.requests || [];
 
+      // Find the last inscriere doctor
+      const inscriereRequests = requests.filter(
+        (req: any) => req.type === "inscriere"
+      );
+      if (inscriereRequests.length > 0) {
+        const lastInscriere = inscriereRequests[0]; // Already sorted by createdAt desc
+        setLastInscriereDoctor({
+          name: lastInscriere.doctorName,
+          specialty: lastInscriere.doctorSpecialty || undefined,
+        });
+      }
+
       // Convert requests to ConversationHistoryItem format
       const requestHistoryItems: ConversationHistoryItem[] = requests.map(
-        (request: any) => ({
-          id: `request-${request.id}`,
-          date: new Date(request.createdAt),
-          content:
-            "Cerere de schimbare medic trimisă catre " + request.doctorName,
-          badgeText: "Schimbare doctor",
-          badgeColor: "red" as const,
-          status: request.status, // Include status for database requests
-        })
+        (request: any) => {
+          if (request.type === "trimitere") {
+            return {
+              id: `request-${request.id}`,
+              date: new Date(request.createdAt),
+              content: `Cerere de trimitere la ${request.referralSpecialty} trimisă către ${request.doctorName}`,
+              badgeText: "Trimitere",
+              badgeColor: "gray" as const,
+              status: request.status,
+              requestId: request.id,
+              requestType: request.type,
+            };
+          } else {
+            return {
+              id: `request-${request.id}`,
+              date: new Date(request.createdAt),
+              content:
+                "Cerere de schimbare medic trimisă către " + request.doctorName,
+              badgeText: "Schimbare doctor",
+              badgeColor: "red" as const,
+              status: request.status,
+              requestId: request.id,
+              requestType: request.type,
+            };
+          }
+        }
       );
 
       // Combine request items with static history, then sort by date (newest first)
@@ -386,7 +430,7 @@ export default function ClientPage() {
     refreshConversationHistory();
   }, [mounted, refreshConversationHistory]);
 
-  // Handle PDF download
+  // Handle PDF download from base64 data
   const handleDownloadPDF = useCallback((pdfData: string) => {
     try {
       // Convert base64 to blob
@@ -413,6 +457,33 @@ export default function ClientPage() {
       console.error("Error downloading PDF:", error);
     }
   }, []);
+
+  // Handle PDF download from API (for approved requests)
+  const handleDownloadRequestPDF = useCallback(
+    async (requestId: number, requestType?: string) => {
+      try {
+        const response = await fetch(`/api/requests/${requestId}/pdf`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch PDF");
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        const typePrefix =
+          requestType === "trimitere" ? "trimitere" : "inscriere";
+        link.download = `cerere-${typePrefix}-${requestId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading PDF:", error);
+        alert("Eroare la descărcarea PDF-ului");
+      }
+    },
+    []
+  );
 
   // Handle starting new conversation
   const handleStartNewConversation = useCallback(() => {
@@ -748,7 +819,7 @@ export default function ClientPage() {
 
   // Handle option selection from buttons
   const handleOptionSelect = useCallback(
-    (optionValue: string) => {
+    async (optionValue: string) => {
       // Add user message with selected option
       const userMessage: ChatMessage = {
         id: nanoid(),
@@ -760,7 +831,7 @@ export default function ClientPage() {
 
       setIsTyping(true);
 
-      setTimeout(() => {
+      setTimeout(async () => {
         if (flowState === "asking_reason") {
           if (optionValue === "Mi-am schimbat domiciliul") {
             const assistantMessageId = nanoid();
@@ -805,15 +876,145 @@ export default function ClientPage() {
               responseData.sources
             );
           }
+        } else if (flowState === "asking_referral_specialty") {
+          // Handle referral specialty selection
+          if (!lastInscriereDoctor) {
+            // No doctor found, show error
+            const errorMessageId = nanoid();
+            const errorMessage: ChatMessage = {
+              id: errorMessageId,
+              content:
+                "Nu am găsit un medic de familie asociat. Te rog să te înscrii mai întâi la un medic de familie.",
+              role: "assistant",
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            setIsTyping(false);
+            setFlowState(null);
+            return;
+          }
+
+          try {
+            // Prepare user data (same as for inscriere)
+            const addressParts = USER_ADDRESS.split(",").map((s) => s.trim());
+            const sectorMatch = addressParts.find((p) =>
+              p.startsWith("Sector")
+            );
+            const streetMatch = addressParts.find((p) => p.startsWith("Str."));
+            const numberMatch = addressParts.find((p) => p.startsWith("nr."));
+            const blockMatch = addressParts.find((p) => p.startsWith("bl."));
+            const entranceMatch = addressParts.find((p) => p.startsWith("sc."));
+            const apartmentMatch = addressParts.find((p) =>
+              p.startsWith("ap.")
+            );
+
+            const sector = sectorMatch
+              ? sectorMatch.replace("Sector", "").trim()
+              : "";
+            const street = streetMatch
+              ? streetMatch.replace("Str.", "").trim()
+              : "";
+            const number = numberMatch
+              ? numberMatch.replace("nr.", "").trim()
+              : "";
+            const block = blockMatch
+              ? blockMatch.replace("bl.", "").trim()
+              : "";
+            const entrance = entranceMatch
+              ? entranceMatch.replace("sc.", "").trim()
+              : "";
+            const apartment = apartmentMatch
+              ? apartmentMatch.replace("ap.", "").trim()
+              : "";
+
+            const userData = {
+              name: "GEORGESCU ANDREI",
+              cnp: "1901213254491",
+              birthDate: "13.12.1990",
+              citizenship: "romana",
+              address: {
+                street: street || "Dezrobirii",
+                number: number || "25",
+                block: block || "1",
+                entrance: entrance || "2",
+                apartment: apartment || "91",
+                sector: `Sector ${sector || "6"}`,
+              },
+              idType: "Carte de identitate",
+              idSeries: "AX",
+              idNumber: "123456",
+              idIssuedBy: "SPCLEP Sector 6",
+              idIssueDate: "15.03.2020",
+            };
+
+            // Submit trimitere request
+            setIsSubmitting(true);
+            const response = await fetch("/api/requests", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                type: "trimitere",
+                patientName: userData.name,
+                patientCnp: userData.cnp,
+                patientBirthDate: userData.birthDate,
+                patientCitizenship: userData.citizenship,
+                patientAddress: userData.address,
+                patientIdType: userData.idType,
+                patientIdSeries: userData.idSeries,
+                patientIdNumber: userData.idNumber,
+                patientIdIssuedBy: userData.idIssuedBy,
+                patientIdIssueDate: userData.idIssueDate,
+                doctorName: lastInscriereDoctor.name,
+                doctorSpecialty: lastInscriereDoctor.specialty,
+                referralSpecialty: optionValue,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to save trimitere request");
+            }
+
+            // Refresh conversation history
+            refreshConversationHistory();
+
+            // Show success message
+            const successMessageId = nanoid();
+            const successMessage: ChatMessage = {
+              id: successMessageId,
+              content: `Cererea de trimitere la ${optionValue} a fost trimisă cu succes către medicul tău de familie, ${lastInscriereDoctor.name}. Vei primi o notificare când trimiterea este gata.`,
+              role: "assistant",
+              timestamp: new Date(),
+              showSuccessButtons: true,
+            };
+            setMessages((prev) => [...prev, successMessage]);
+            setFlowState(null);
+          } catch (error) {
+            console.error("Error submitting trimitere request:", error);
+            const errorMessageId = nanoid();
+            const errorMessage: ChatMessage = {
+              id: errorMessageId,
+              content:
+                "A apărut o eroare la trimiterea cererii. Te rog încearcă din nou.",
+              role: "assistant",
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+          } finally {
+            setIsSubmitting(false);
+            setIsTyping(false);
+          }
         }
       }, 800);
     },
-    [flowState, simulateTyping]
+    [flowState, simulateTyping, lastInscriereDoctor, refreshConversationHistory]
   );
 
   const handleSubmit = useCallback(
     (value: string) => {
       if (!value.trim() || isTyping) return;
+
       // Add user message
       const userMessage: ChatMessage = {
         id: nanoid(),
@@ -825,8 +1026,59 @@ export default function ClientPage() {
       setInputValue("");
       setIsTyping(true);
 
+      // Check if this is about referral (trimitere) - only if not in another flow
+      if (flowState === null && isReferralMessage(value.trim())) {
+        setTimeout(() => {
+          const assistantMessageId = nanoid();
+          const responseContent =
+            "Pentru ce specializare ai nevoie de trimitere?";
+          const options = [
+            {
+              label: "Cardiologie",
+              value: "Cardiologie",
+            },
+            {
+              label: "Dermatologie",
+              value: "Dermatologie",
+            },
+            {
+              label: "Endocrinologie",
+              value: "Endocrinologie",
+            },
+            {
+              label: "Gastroenterologie",
+              value: "Gastroenterologie",
+            },
+            {
+              label: "Neurologie",
+              value: "Neurologie",
+            },
+            {
+              label: "Oftalmologie",
+              value: "Oftalmologie",
+            },
+          ];
+
+          const assistantMessage: ChatMessage = {
+            id: assistantMessageId,
+            content: "",
+            role: "assistant",
+            timestamp: new Date(),
+            isStreaming: true,
+            options,
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+          setStreamingMessageId(assistantMessageId);
+          setFlowState("asking_referral_specialty");
+
+          // Start typing simulation
+          simulateTyping(assistantMessageId, responseContent);
+        }, 800);
+        return;
+      }
+
       // Check if this is about changing family doctor
-      if (isChangingDoctorMessage(value.trim())) {
+      if (flowState === null && isChangingDoctorMessage(value.trim())) {
         setTimeout(() => {
           const assistantMessageId = nanoid();
           const responseContent = "De ce vrei să schimbi medicul de familie?";
@@ -919,7 +1171,7 @@ export default function ClientPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar variant="pacient" activeMenuItem="Discuta cu Ana" />
+      <AppSidebar variant="pacient" activeMenuItem="Discută cu Ana" />
       <SidebarInset>
         <div className="flex h-screen w-full flex-col bg-background">
           {/* Header */}
@@ -981,6 +1233,18 @@ export default function ClientPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {item.requestId && item.status === "approved" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleDownloadRequestPDF(
+                                      item.requestId!,
+                                      item.requestType
+                                    )
+                                  }
+                                >
+                                  Descarcă PDF
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem>Vizualizare</DropdownMenuItem>
                               <DropdownMenuItem>Ștergere</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1209,9 +1473,10 @@ export default function ClientPage() {
                             !message.isStreaming && (
                               <div className="mt-3 flex flex-col gap-2">
                                 {message.options.map((option, index) => {
-                                  const isClickable =
-                                    option.value ===
-                                    "Mi-am schimbat domiciliul";
+                                  // All options are clickable now
+                                  // For referral specialty flow, all options are clickable
+                                  // For other flows, we can make all clickable or keep specific logic
+                                  const isClickable = true; // Make all options clickable
                                   return (
                                     <Button
                                       key={index}
@@ -1222,11 +1487,7 @@ export default function ClientPage() {
                                           handleOptionSelect(option.value);
                                         }
                                       }}
-                                      style={
-                                        !isClickable
-                                          ? { pointerEvents: "none" }
-                                          : undefined
-                                      }
+                                      disabled={!isClickable || isSubmitting}
                                     >
                                       {option.label}
                                     </Button>
@@ -1263,17 +1524,19 @@ export default function ClientPage() {
                               <Sources sources={message.sources} />
                             </div>
                           )}
-                          {message.showSuccessButtons && message.pdfData && (
+                          {message.showSuccessButtons && (
                             <div className="mt-3 flex gap-2">
-                              <Button
-                                onClick={() => {
-                                  handleDownloadPDF(message.pdfData!);
-                                }}
-                                variant="outline"
-                                className="flex-1 bg-[#FF008C] hover:bg-[#E6007A] text-white hover:text-white border-[#FF008C] hover:border-[#E6007A]"
-                              >
-                                Descarcă cererea
-                              </Button>
+                              {message.pdfData && (
+                                <Button
+                                  onClick={() => {
+                                    handleDownloadPDF(message.pdfData!);
+                                  }}
+                                  variant="outline"
+                                  className="flex-1 bg-[#FF008C] hover:bg-[#E6007A] text-white hover:text-white border-[#FF008C] hover:border-[#E6007A]"
+                                >
+                                  Descarcă cererea
+                                </Button>
+                              )}
                               <Button
                                 onClick={handleStartNewConversation}
                                 variant="outline"
@@ -1322,15 +1585,29 @@ export default function ClientPage() {
 
                                   setIsSubmitting(true);
                                   try {
-                                    // Generate PDF as base64
-                                    const pdfBase64 = await generatePDFAsBase64(
+                                    // Generate PDF on the server
+                                    const pdfResponse = await fetch(
+                                      "/api/generate-pdf",
                                       {
-                                        signatureDataUrl:
-                                          pendingRequestData.signatureDataUrl,
-                                        doctorName: selectedDoctor.name,
-                                        userData: pendingRequestData.userData,
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          signatureDataUrl:
+                                            pendingRequestData.signatureDataUrl,
+                                          doctorName: selectedDoctor.name,
+                                          userData: pendingRequestData.userData,
+                                        }),
                                       }
                                     );
+
+                                    if (!pdfResponse.ok) {
+                                      throw new Error("Failed to generate PDF");
+                                    }
+
+                                    const pdfResult = await pdfResponse.json();
+                                    const pdfBase64 = pdfResult.pdfData;
 
                                     // Save to database
                                     const response = await fetch(

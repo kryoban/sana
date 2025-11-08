@@ -38,18 +38,22 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
-# If using standalone output, copy from .next/standalone
-# Otherwise, copy the full .next folder
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy Prisma schema and migrations first (needed for runtime migrations)
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
 
-# If not using standalone, use this instead:
-# COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-# COPY --from=builder /app/node_modules ./node_modules
-# COPY --from=builder /app/package.json ./package.json
+# Copy public assets
+COPY --from=builder /app/public ./public
+
+# Copy .next build output
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
+# Copy node_modules (needed for Prisma CLI and runtime)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy startup script
+COPY --from=builder /app/scripts/start.sh ./scripts/start.sh
+RUN chmod +x ./scripts/start.sh
 
 USER nextjs
 
@@ -58,6 +62,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Use standalone server if available, otherwise use next start
-CMD ["node", "server.js"]
+# Run migrations and start the application
+# Note: DATABASE_URL must be provided as an environment variable
+CMD ["./scripts/start.sh"]
 

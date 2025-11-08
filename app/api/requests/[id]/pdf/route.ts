@@ -23,12 +23,21 @@ export async function GET(
       },
       select: {
         pdfData: true,
+        type: true,
       },
     });
     
     if (!request) {
       return NextResponse.json(
         { error: 'Request not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if PDF exists (trimitere requests don't have PDF)
+    if (!request.pdfData) {
+      return NextResponse.json(
+        { error: 'PDF not available for this request' },
         { status: 404 }
       );
     }

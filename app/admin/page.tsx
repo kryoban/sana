@@ -13,7 +13,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { RefreshCw, Download, Eye, Trash2, AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +32,7 @@ import {
 
 type Request = {
   id: number;
+  type: string;
   patientName: string;
   patientCnp: string;
   patientBirthDate: string;
@@ -63,7 +70,15 @@ export default function AdminPage() {
       const response = await fetch("/api/requests");
       if (response.ok) {
         const data = await response.json();
-        setRequests(data.requests);
+        // Sort by creation date (newest first)
+        const sortedRequests = (data.requests || []).sort(
+          (a: Request, b: Request) => {
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          }
+        );
+        setRequests(sortedRequests);
       } else {
         console.error("Failed to fetch requests");
       }
@@ -139,9 +154,7 @@ export default function AdminPage() {
 
       if (response.ok) {
         // Remove the request from the list
-        setRequests((prev) =>
-          prev.filter((req) => req.id !== requestToDelete)
-        );
+        setRequests((prev) => prev.filter((req) => req.id !== requestToDelete));
         setDeleteDialogOpen(false);
         setRequestToDelete(null);
         // Close details dialog if the deleted request was selected
@@ -234,6 +247,7 @@ export default function AdminPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>ID</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Patient</TableHead>
                         <TableHead>CNP</TableHead>
                         <TableHead>Doctor</TableHead>
@@ -247,6 +261,11 @@ export default function AdminPage() {
                         <TableRow key={request.id}>
                           <TableCell className="font-medium">
                             {request.id}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {request.type}
+                            </Badge>
                           </TableCell>
                           <TableCell>{request.patientName}</TableCell>
                           <TableCell className="font-mono text-sm">
@@ -264,7 +283,9 @@ export default function AdminPage() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>{getStatusBadge(request.status)}</TableCell>
+                          <TableCell>
+                            {getStatusBadge(request.status)}
+                          </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {formatDateTime(request.createdAt)}
                           </TableCell>
@@ -310,7 +331,9 @@ export default function AdminPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Request Details #{selectedRequest.id}</CardTitle>
+                      <CardTitle>
+                        Request Details #{selectedRequest.id}
+                      </CardTitle>
                       <CardDescription>
                         Created: {formatDateTime(selectedRequest.createdAt)}
                       </CardDescription>
@@ -327,7 +350,28 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h3 className="font-semibold mb-2">Patient Information</h3>
+                      <h3 className="font-semibold mb-2">
+                        Request Information
+                      </h3>
+                      <div className="space-y-1 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Type: </span>
+                          <Badge variant="outline" className="capitalize">
+                            {selectedRequest.type}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Status:{" "}
+                          </span>
+                          {getStatusBadge(selectedRequest.status)}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">
+                        Patient Information
+                      </h3>
                       <div className="space-y-1 text-sm">
                         <div>
                           <span className="text-muted-foreground">Name: </span>
@@ -352,7 +396,9 @@ export default function AdminPage() {
                           {selectedRequest.patientCitizenship}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Address: </span>
+                          <span className="text-muted-foreground">
+                            Address:{" "}
+                          </span>
                           {[
                             selectedRequest.patientAddressStreet,
                             selectedRequest.patientAddressNumber &&
@@ -378,11 +424,15 @@ export default function AdminPage() {
                           {selectedRequest.patientIdType}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Series: </span>
+                          <span className="text-muted-foreground">
+                            Series:{" "}
+                          </span>
                           {selectedRequest.patientIdSeries}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Number: </span>
+                          <span className="text-muted-foreground">
+                            Number:{" "}
+                          </span>
                           {selectedRequest.patientIdNumber}
                         </div>
                         <div>
@@ -417,18 +467,18 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-2">Request Status</h3>
+                      <h3 className="font-semibold mb-2">Timestamps</h3>
                       <div className="space-y-1 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Status: </span>
-                          {getStatusBadge(selectedRequest.status)}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Created: </span>
+                          <span className="text-muted-foreground">
+                            Created:{" "}
+                          </span>
                           {formatDateTime(selectedRequest.createdAt)}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Updated: </span>
+                          <span className="text-muted-foreground">
+                            Updated:{" "}
+                          </span>
                           {formatDateTime(selectedRequest.updatedAt)}
                         </div>
                       </div>
@@ -497,7 +547,10 @@ export default function AdminPage() {
           </Dialog>
 
           {/* Delete All Confirmation Dialog */}
-          <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+          <Dialog
+            open={deleteAllDialogOpen}
+            onOpenChange={setDeleteAllDialogOpen}
+          >
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -505,9 +558,9 @@ export default function AdminPage() {
                   Delete All Requests
                 </DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete all {requests.length} requests?
-                  This action cannot be undone. All requests and associated data
-                  will be permanently removed.
+                  Are you sure you want to delete all {requests.length}{" "}
+                  requests? This action cannot be undone. All requests and
+                  associated data will be permanently removed.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -523,7 +576,9 @@ export default function AdminPage() {
                   onClick={handleDeleteAllConfirm}
                   disabled={isDeleting}
                 >
-                  {isDeleting ? "Deleting..." : `Delete All (${requests.length})`}
+                  {isDeleting
+                    ? "Deleting..."
+                    : `Delete All (${requests.length})`}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -533,4 +588,3 @@ export default function AdminPage() {
     </SidebarProvider>
   );
 }
-

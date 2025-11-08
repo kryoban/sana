@@ -12,6 +12,7 @@ datasource db {
 
 model Request {
   id                      Int      @id @default(autoincrement())
+  type                    String   @default("inscriere") @map("type") @db.VarChar(50)
   patientName             String   @map("patient_name") @db.VarChar(255)
   patientCnp              String   @map("patient_cnp") @db.VarChar(13)
   patientBirthDate        String   @map("patient_birth_date") @db.VarChar(10)
@@ -29,14 +30,16 @@ model Request {
   patientIdIssueDate      String   @map("patient_id_issue_date") @db.VarChar(10)
   doctorName              String   @map("doctor_name") @db.VarChar(255)
   doctorSpecialty         String?  @map("doctor_specialty") @db.VarChar(255)
-  pdfData                 Bytes    @map("pdf_data")
-  signatureDataUrl        String   @map("signature_data_url") @db.Text
+  referralSpecialty       String?  @map("referral_specialty") @db.VarChar(255)
+  pdfData                 Bytes?   @map("pdf_data")
+  signatureDataUrl        String?  @map("signature_data_url") @db.Text
   status                  String   @default("pending") @db.VarChar(50)
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@index([patientCnp], name: "idx_requests_cnp")
   @@index([status], name: "idx_requests_status")
+  @@index([type], name: "idx_requests_type")
   @@index([createdAt(sort: Desc)], name: "idx_requests_created_at")
   @@map("requests")
 }
