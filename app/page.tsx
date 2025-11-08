@@ -11,8 +11,8 @@ export default function Home() {
 
   const tabs = [
     "Obligații de plată",
-    "ANAF",
     "SANA",
+    "ANAF",
     "HUB MAI(Cazier)",
     "Rovinietă",
     "Utilități",
