@@ -12,9 +12,19 @@ import { PromptInput } from "@/components/ui/shadcn-io/ai/prompt-input";
 import { Reasoning } from "@/components/ui/shadcn-io/ai/reasoning";
 import { Sources } from "@/components/ui/shadcn-io/ai/source";
 import { Button } from "@/components/ui/button";
-import { RotateCcwIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVerticalIcon } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { cn } from "@/lib/utils";
 
 type ChatMessage = {
   id: string;
@@ -29,52 +39,142 @@ type ChatMessage = {
 const sampleResponses = [
   {
     content:
-      "I'd be happy to help you with that! React is a powerful JavaScript library for building user interfaces. What specific aspect would you like to explore?",
+      "Aș fi fericit să te ajut cu asta! React este o bibliotecă JavaScript puternică pentru construirea interfețelor utilizator. Ce aspect specific ai dori să explorăm?",
     reasoning:
-      "The user is asking about React, which is a broad topic. I should provide a helpful overview while asking for more specific information to give a more targeted response.",
+      "Utilizatorul întreabă despre React, care este un subiect larg. Ar trebui să ofer un rezumat util în timp ce cer mai multe informații specifice pentru a da un răspuns mai țintit.",
     sources: [
-      { title: "React Official Documentation", url: "https://react.dev" },
-      { title: "React Developer Tools", url: "https://react.dev/learn" },
+      { title: "Documentația Oficială React", url: "https://react.dev" },
+      {
+        title: "Instrumente pentru Dezvoltatori React",
+        url: "https://react.dev/learn",
+      },
     ],
   },
   {
     content:
-      "Next.js is an excellent framework built on top of React that provides server-side rendering, static site generation, and many other powerful features out of the box.",
+      "Next.js este un framework excelent construit pe React care oferă rendering pe server, generare de site-uri statice și multe alte funcții puternice din cutie.",
     reasoning:
-      "The user mentioned Next.js, so I should explain its relationship to React and highlight its key benefits for modern web development.",
+      "Utilizatorul a menționat Next.js, așa că ar trebui să explic relația sa cu React și să evidențiez beneficiile sale cheie pentru dezvoltarea web modernă.",
     sources: [
-      { title: "Next.js Documentation", url: "https://nextjs.org/docs" },
+      { title: "Documentația Next.js", url: "https://nextjs.org/docs" },
       {
-        title: "Vercel Next.js Guide",
+        title: "Ghidul Vercel Next.js",
         url: "https://vercel.com/guides/nextjs",
       },
     ],
   },
   {
     content:
-      "TypeScript adds static type checking to JavaScript, which helps catch errors early and improves code quality. It's particularly valuable in larger applications.",
+      "TypeScript adaugă verificarea statică a tipurilor la JavaScript, ceea ce ajută la identificarea erorilor din timp și îmbunătățește calitatea codului. Este deosebit de valoros în aplicații mai mari.",
     reasoning:
-      "TypeScript is becoming increasingly important in modern development. I should explain its benefits while keeping the explanation accessible.",
+      "TypeScript devine din ce în ce mai important în dezvoltarea modernă. Ar trebui să explic beneficiile sale păstrând explicația accesibilă.",
     sources: [
       {
-        title: "TypeScript Handbook",
+        title: "Manualul TypeScript",
         url: "https://www.typescriptlang.org/docs",
       },
       {
-        title: "TypeScript with React",
+        title: "TypeScript cu React",
         url: "https://react.dev/learn/typescript",
       },
     ],
   },
 ];
 
-const getInitialMessage = (): ChatMessage => ({
-  id: nanoid(),
-  content:
-    "Hello! I'm Ana, your AI assistant. I can help you with coding questions, explain concepts, and provide guidance on web development topics. What would you like to know?",
-  role: "assistant",
-  timestamp: new Date(),
-});
+type ConversationHistoryItem = {
+  id: string;
+  date: Date;
+  content: string;
+  badgeText: string;
+  badgeColor: "gray" | "yellow" | "red";
+};
+
+const conversationHistory: ConversationHistoryItem[] = [
+  {
+    id: "1",
+    date: new Date(2024, 0, 15), // January 15, 2024
+    content:
+      "Salut Andrei, am revenit pentru programarea unui set de analize anuale...",
+    badgeText: "Programare",
+    badgeColor: "gray",
+  },
+  {
+    id: "2",
+    date: new Date(2024, 0, 12), // January 12, 2024
+    content: "Am nevoie de adeverință de asigurat de la CNAS...",
+    badgeText: "Adeverință asigurat",
+    badgeColor: "yellow",
+  },
+  {
+    id: "3",
+    date: new Date(2024, 0, 10), // January 10, 2024
+    content:
+      "In ultima perioada m-a durut zona lombara foarte rau, fara a depun vreun efort semnificativ...",
+    badgeText: "Trimitere RMN",
+    badgeColor: "gray",
+  },
+  {
+    id: "4",
+    date: new Date(2024, 0, 8), // January 8, 2024
+    content:
+      "🎉 Buna Andrei, am programat prima vizita la noul medic de familie, dr. Dana Popescu.",
+    badgeText: "Programare",
+    badgeColor: "gray",
+  },
+  {
+    id: "5",
+    date: new Date(2024, 0, 5), // January 5, 2024
+    content:
+      "Doresc să schimb doctorul de familie deoarece mi-am schimbat domiciliul...",
+    badgeText: "Schimbare doctor",
+    badgeColor: "red",
+  },
+];
+
+const formatDate = (date: Date): string => {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+const getBadgeStyles = (color: "gray" | "yellow" | "red") => {
+  switch (color) {
+    case "gray":
+      return {
+        backgroundColor: "#F4F4F5",
+        color: "#3F3F46",
+        fontWeight: 600,
+        paddingTop: "4px",
+        paddingBottom: "4px",
+        paddingLeft: "8px",
+        paddingRight: "8px",
+        borderRadius: "6px",
+      };
+    case "yellow":
+      return {
+        backgroundColor: "#E8C46880",
+        color: "#3F3F46",
+        fontWeight: 600,
+        paddingTop: "4px",
+        paddingBottom: "4px",
+        paddingLeft: "8px",
+        paddingRight: "8px",
+        borderRadius: "6px",
+      };
+    case "red":
+      return {
+        backgroundColor: "#DC2626",
+        color: "#FFFFFF",
+        fontWeight: 600,
+        paddingTop: "4px",
+        paddingBottom: "4px",
+        paddingLeft: "8px",
+        paddingRight: "8px",
+        borderRadius: "6px",
+      };
+  }
+};
 
 export default function ClientPage() {
   const [mounted, setMounted] = React.useState(false);
@@ -85,11 +185,13 @@ export default function ClientPage() {
     null
   );
 
-  // Initialize with welcome message after hydration to avoid SSR mismatch
+  // Initialize after hydration to avoid SSR mismatch
   React.useEffect(() => {
     setMounted(true);
-    setMessages([getInitialMessage()]);
   }, []);
+
+  // Show history only when there are no messages (history hides after first message is submitted)
+  const showHistory = mounted && messages.length === 0;
 
   const simulateTyping = useCallback(
     (
@@ -100,30 +202,39 @@ export default function ClientPage() {
     ) => {
       let currentIndex = 0;
       const typeInterval = setInterval(() => {
+        // Type 2-3 characters at a time for moderate typing speed
+        const charsToAdd = Math.floor(Math.random() * 2) + 2; // 2-3 characters
+        currentIndex += charsToAdd;
+
+        // Ensure we don't exceed the content length
+        if (currentIndex > content.length) {
+          currentIndex = content.length;
+        }
+
+        // Update the message with current progress
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id === messageId) {
-              const currentContent = content.slice(0, currentIndex);
+              const isComplete = currentIndex >= content.length;
               return {
                 ...msg,
-                content: currentContent,
-                isStreaming: currentIndex < content.length,
-                reasoning:
-                  currentIndex >= content.length ? reasoning : undefined,
-                sources: currentIndex >= content.length ? sources : undefined,
+                content: content.slice(0, currentIndex),
+                isStreaming: !isComplete,
+                reasoning: isComplete ? reasoning : undefined,
+                sources: isComplete ? sources : undefined,
               };
             }
             return msg;
           })
         );
-        currentIndex += Math.random() > 0.1 ? 1 : 0; // Simulate variable typing speed
 
+        // If complete, clean up and stop
         if (currentIndex >= content.length) {
           clearInterval(typeInterval);
           setIsTyping(false);
           setStreamingMessageId(null);
         }
-      }, 50);
+      }, 30); // 30ms interval for moderate typing speed
       return () => clearInterval(typeInterval);
     },
     []
@@ -186,78 +297,113 @@ export default function ClientPage() {
     return () => clearTimeout(timer);
   }, [messages]);
 
-  const handleReset = useCallback(() => {
-    setMessages([getInitialMessage()]);
-    setInputValue("");
-    setIsTyping(false);
-    setStreamingMessageId(null);
-  }, []);
-
   return (
-    <div className="flex h-screen w-full flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="size-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm font-semibold text-card-foreground">
-              Ana
-            </span>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <div className="flex h-screen w-full flex-col bg-background">
+          {/* Conversation Area */}
+          <Conversation className="flex-1">
+            <ConversationContent>
+              {showHistory ? (
+                <div className="flex flex-col gap-6">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Discutii anterioare
+                  </h2>
+                  <div className="flex flex-col overflow-hidden rounded-lg border border-border">
+                    {conversationHistory.map((item, index) => {
+                      const isFirst = index === 0;
+                      const isLast = index === conversationHistory.length - 1;
+                      const badgeStyles = getBadgeStyles(item.badgeColor);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "flex items-center gap-4 border-b border-border bg-card px-4 hover:bg-accent/50 transition-colors h-[52px]",
+                            isFirst && "rounded-t-lg",
+                            isLast && "rounded-b-lg border-b-0"
+                          )}
+                        >
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {formatDate(item.date)}
+                          </span>
+                          <span className="flex-1 text-sm text-foreground">
+                            {item.content}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="whitespace-nowrap border-0"
+                            style={badgeStyles}
+                          >
+                            {item.badgeText}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="h-8 w-8"
+                              >
+                                <MoreVerticalIcon className="h-4 w-4" />
+                                <span className="sr-only">
+                                  Mai multe opțiuni
+                                </span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>Vizualizare</DropdownMenuItem>
+                              <DropdownMenuItem>Ștergere</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {mounted &&
+                    messages.map((message) => (
+                      <Message key={message.id} from={message.role}>
+                        <MessageContent from={message.role}>
+                          {message.content}
+                        </MessageContent>
+                        {message.reasoning && (
+                          <div className="mt-2">
+                            <Reasoning>{message.reasoning}</Reasoning>
+                          </div>
+                        )}
+                        {message.sources && message.sources.length > 0 && (
+                          <div className="mt-2">
+                            <Sources sources={message.sources} />
+                          </div>
+                        )}
+                      </Message>
+                    ))}
+                  {mounted && isTyping && !streamingMessageId && (
+                    <Message from="assistant">
+                      <MessageContent from="assistant">
+                        <Loader />
+                      </MessageContent>
+                    </Message>
+                  )}
+                </>
+              )}
+            </ConversationContent>
+            {!showHistory && <ConversationScrollButton />}
+          </Conversation>
+
+          {/* Input Area */}
+          <div className="border-t border-border bg-card">
+            <PromptInput
+              onSubmit={handleSubmit}
+              value={inputValue}
+              onValueChange={setInputValue}
+            />
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-          className="h-8 px-3 text-xs"
-        >
-          <RotateCcwIcon className="size-3.5" />
-          <span className="ml-1.5">Reset</span>
-        </Button>
-      </div>
-
-      {/* Conversation Area */}
-      <Conversation className="flex-1">
-        <ConversationContent>
-          {mounted && messages.map((message) => (
-            <Message key={message.id} from={message.role}>
-              <MessageContent from={message.role}>
-                {message.content}
-                {message.isStreaming && (
-                  <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
-                )}
-              </MessageContent>
-              {message.reasoning && (
-                <div className="mt-2">
-                  <Reasoning>{message.reasoning}</Reasoning>
-                </div>
-              )}
-              {message.sources && message.sources.length > 0 && (
-                <div className="mt-2">
-                  <Sources sources={message.sources} />
-                </div>
-              )}
-            </Message>
-          ))}
-          {mounted && isTyping && !streamingMessageId && (
-            <Message from="assistant">
-              <MessageContent from="assistant">
-                <Loader />
-              </MessageContent>
-            </Message>
-          )}
-        </ConversationContent>
-        <ConversationScrollButton />
-      </Conversation>
-
-      {/* Input Area */}
-      <div className="border-t border-border bg-card">
-        <PromptInput
-          onSubmit={handleSubmit}
-          value={inputValue}
-          onValueChange={setInputValue}
-        />
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

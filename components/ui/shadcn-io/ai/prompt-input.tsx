@@ -104,7 +104,7 @@ export const PromptInputTextarea = React.forwardRef<
         "min-h-[52px] max-h-[200px] resize-none py-3 pr-12 text-sm leading-relaxed",
         className
       )}
-      placeholder="Type your message..."
+      placeholder="Bună, Andrei! Cu ce te pot ajuta?"
       {...props}
     />
   );
@@ -134,11 +134,11 @@ export function PromptInputTools({
     <div className={cn("flex items-center gap-2", className)} {...props}>
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
         <PaperclipIcon className="h-4 w-4" />
-        <span className="sr-only">Attach file</span>
+        <span className="sr-only">Atașează fișier</span>
       </Button>
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
         <MicIcon className="h-4 w-4" />
-        <span className="sr-only">Voice input</span>
+        <span className="sr-only">Intrare vocală</span>
       </Button>
     </div>
   );
@@ -158,7 +158,7 @@ export function PromptInputSubmit({
       {...props}
     >
       <SendIcon className="h-4 w-4" />
-      <span className="sr-only">Send message</span>
+      <span className="sr-only">Trimite mesaj</span>
     </Button>
   );
 }

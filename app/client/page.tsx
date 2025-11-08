@@ -100,30 +100,39 @@ export default function ClientPage() {
     ) => {
       let currentIndex = 0;
       const typeInterval = setInterval(() => {
+        // Type 2-3 characters at a time for moderate typing speed
+        const charsToAdd = Math.floor(Math.random() * 2) + 2; // 2-3 characters
+        currentIndex += charsToAdd;
+
+        // Ensure we don't exceed the content length
+        if (currentIndex > content.length) {
+          currentIndex = content.length;
+        }
+
+        // Update the message with current progress
         setMessages((prev) =>
           prev.map((msg) => {
             if (msg.id === messageId) {
-              const currentContent = content.slice(0, currentIndex);
+              const isComplete = currentIndex >= content.length;
               return {
                 ...msg,
-                content: currentContent,
-                isStreaming: currentIndex < content.length,
-                reasoning:
-                  currentIndex >= content.length ? reasoning : undefined,
-                sources: currentIndex >= content.length ? sources : undefined,
+                content: content.slice(0, currentIndex),
+                isStreaming: !isComplete,
+                reasoning: isComplete ? reasoning : undefined,
+                sources: isComplete ? sources : undefined,
               };
             }
             return msg;
           })
         );
-        currentIndex += Math.random() > 0.1 ? 1 : 0; // Simulate variable typing speed
 
+        // If complete, clean up and stop
         if (currentIndex >= content.length) {
           clearInterval(typeInterval);
           setIsTyping(false);
           setStreamingMessageId(null);
         }
-      }, 50);
+      }, 30); // 30ms interval for moderate typing speed
       return () => clearInterval(typeInterval);
     },
     []
@@ -224,9 +233,6 @@ export default function ClientPage() {
               <Message key={message.id} from={message.role}>
                 <MessageContent from={message.role}>
                   {message.content}
-                  {message.isStreaming && (
-                    <span className="ml-1 inline-block h-4 w-0.5 animate-pulse bg-current" />
-                  )}
                 </MessageContent>
                 {message.reasoning && (
                   <div className="mt-2">

@@ -86,7 +86,7 @@ export function ConversationContent({
   return (
     <div
       className={cn(
-        "flex min-h-full flex-col gap-6 px-4 py-6 md:px-6",
+        "flex min-h-full flex-col gap-6 px-4 py-6 md:px-8",
         className
       )}
       {...props}

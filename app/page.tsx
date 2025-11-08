@@ -42,26 +42,38 @@ export default function Home() {
               <nav className="hidden md:flex gap-6">
                 <a
                   href="#"
-                  className="text-blue-600 font-medium border-b-2 border-blue-600 pb-1"
+                  className="cursor-pointer text-blue-600 font-medium border-b-2 border-blue-600 pb-1"
                 >
                   Acasă
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <a
+                  href="#"
+                  className="cursor-pointer text-gray-600 hover:text-gray-900"
+                >
                   Instituții înrolate
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <a
+                  href="#"
+                  className="cursor-pointer text-gray-600 hover:text-gray-900"
+                >
                   Legislație
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <a
+                  href="#"
+                  className="cursor-pointer text-gray-600 hover:text-gray-900"
+                >
                   Întrebări frecvente
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <a
+                  href="#"
+                  className="cursor-pointer text-gray-600 hover:text-gray-900"
+                >
                   Contact
                 </a>
               </nav>
               <a
                 href="#"
-                className="text-gray-600 hover:text-gray-900 font-medium"
+                className="cursor-pointer text-gray-600 hover:text-gray-900 font-medium"
               >
                 Contul meu
               </a>
@@ -108,11 +120,12 @@ export default function Home() {
                         setActiveTab(tab);
                       }
                     }}
-                    className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    className={`cursor-pointer px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                       activeTab === tab
                         ? "border-blue-600 text-blue-600"
                         : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
-                    }`}
+                    } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+                    disabled={isDisabled}
                   >
                     {tab}
                   </button>
@@ -221,7 +234,7 @@ export default function Home() {
                       }}
                       className={`px-8 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
                         selectedRole
-                          ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                          ? "cursor-pointer bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
                       }`}
                       disabled={!selectedRole}
@@ -241,6 +254,65 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row justify-between gap-8">
+            <div className="flex-shrink-0">
+              <div className="inline-block">
+                <Image
+                  src="/images/logo_aadr.png"
+                  alt="Autoritatea pentru Digitalizarea României"
+                  width={200}
+                  height={80}
+                  className="h-auto"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <ul className="flex flex-wrap gap-4 md:gap-6">
+                <li>
+                  <span className="text-gray-600 text-sm">
+                    Termeni și condiții
+                  </span>
+                </li>
+                <li>
+                  <span className="text-gray-600 text-sm">
+                    Protecția datelor personale
+                  </span>
+                </li>
+              </ul>
+              <ul>
+                <li className="text-sm text-gray-600">
+                  <span className="hidden">GVP-09 3797</span>
+                  <abbr title="Sistemul Național Electronic de Plată Online">
+                    SNEP
+                  </abbr>{" "}
+                  este dedicat în acest moment{" "}
+                  <abbr title="Persoană fizică">PF</abbr>,{" "}
+                  <abbr title="Persoană fizică autorizată">PFA</abbr> şi{" "}
+                  <abbr title="Persoană juridică">PJ</abbr>.
+                </li>
+              </ul>
+              <ul>
+                <li className="text-sm text-gray-600 flex items-center gap-2">
+                  Proiect susținut de{" "}
+                  <span className="inline-block" title="APERO">
+                    <Image
+                      src="/images/logo_apero.png"
+                      alt="APERO"
+                      width={80}
+                      height={30}
+                      className="h-auto"
+                    />
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

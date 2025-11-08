@@ -102,7 +102,7 @@ export function Source({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "flex items-center gap-2 rounded-md p-2 text-sm text-card-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+        "cursor-pointer flex items-center gap-2 rounded-md p-2 text-sm text-card-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
         className
       )}
       {...props}
