@@ -6,12 +6,12 @@ import { User, Stethoscope, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("SANA");
+  const [activeTab, setActiveTab] = useState("ANA");
   const [selectedRole, setSelectedRole] = useState("");
 
   const tabs = [
     "Obligații de plată",
-    "SANA",
+    "ANA",
     "ANAF",
     "HUB MAI(Cazier)",
     "Rovinietă",
@@ -111,7 +111,7 @@ export default function Home() {
           <div className="border-b border-gray-200">
             <div className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => {
-                const isDisabled = tab !== "SANA";
+                const isDisabled = tab !== "ANA";
                 return (
                   <button
                     key={tab}
@@ -136,7 +136,7 @@ export default function Home() {
 
           {/* Tab Content */}
           <div className="p-6">
-            {activeTab === "SANA" && (
+            {activeTab === "ANA" && (
               <div className="space-y-6">
                 <div>
                   <div className="text-center mb-6">
@@ -246,7 +246,7 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {activeTab !== "SANA" && (
+            {activeTab !== "ANA" && (
               <div className="text-gray-500 text-center py-8">
                 Conținut pentru {activeTab}
               </div>
